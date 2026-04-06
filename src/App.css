@@ -1,0 +1,111 @@
+/* Message bubble tails */
+.msg-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid #dbeafe;
+  border-top: 0px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+.msg-in::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-right: 8px solid #eff6ff;
+  border-top: 0px solid transparent;
+  border-bottom: 8px solid transparent;
+}
+
+/* Date separator chip */
+.date-chip {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 12.5px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Chat list item divider */
+.chat-item-border {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* WhatsApp-style forwarded icon arrow */
+.forwarded-icon {
+  color: #64748b;
+}
+
+/* Input area attachment button animation */
+.attach-btn:hover {
+  background: #dbeafe;
+}
+
+/* Active nav icon indicator */
+.nav-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 28px;
+  background: #0f74ff;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Smooth transition for chat selection */
+.chat-item-transition {
+  transition: background-color 0.15s ease;
+}
+
+/* PDF attachment card */
+.pdf-card {
+  background: #eff6ff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Message read receipts */
+.read-receipt {
+  color: #53bdeb;
+}
+
+/* Unread message green indicator */
+.unread-badge {
+  background: #0f74ff;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
+  padding: 0 4px;
+}
+
+/* Muted chat bell icon */
+.muted-icon {
+  color: #8696a0;
+  font-size: 12px;
+}
