@@ -1,23 +1,13 @@
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react'
 import { GoogleLogin } from '@react-oauth/google'
-
-interface RegisteredUser {
-  name: string
-  email: string
-  phone: string
-  password?: string
-  experience: string
-  targetExam: string
-  idDocumentName?: string
-  verificationStatus: 'unverified' | 'pending' | 'verified'
-}
+import { type User } from '../services/api_service'
 
 interface AuthPageProps {
   mode: 'login' | 'signup'
-  registeredUser: RegisteredUser | null
+  registeredUser: User | null
   onModeChange: (mode: 'login' | 'signup') => void
   onLogin: (identifier: string, password: string) => void
-  onSignup: (data: RegisteredUser) => void
+  onSignup: (data: User) => void
   onGoogleSignIn: (token: string) => void
   apiError?: string | null
   isLoading?: boolean

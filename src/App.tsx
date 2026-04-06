@@ -5,48 +5,13 @@ import ChatWindow from './components/ChatWindow'
 import AuthPage from './components/AuthPage'
 import AdminPanel from './components/AdminPanel'
 import CompleteProfileModal from './components/CompleteProfileModal'
-import { authAPI, chatAPI, tokenManager } from './services/api'
+import { authAPI, chatAPI, tokenManager, type User, type Conversation } from './services/api_service'
 import './App.css'
 
-export interface Conversation {
-  _id: string
-  participants: Array<{
-    _id: string
-    name: string
-    email: string
-    avatar: string
-    phone?: string
-    verificationStatus?: string
-  }>
-  lastMessage: {
-    _id: string
-    text: string
-    senderId: { _id: string; name: string; email: string }
-    createdAt: string
-  } | null
-  lastMessageAt: string | null
-  unreadCounts: Array<{ userId: string; count: number }>
-  isGroup: boolean
-  groupName: string | null
-  groupIcon: string | null
-  createdAt: string
-}
+// Local types for UI state
+export type { Conversation }
 
 type AuthMode = 'login' | 'signup'
-
-interface RegisteredUser {
-  id?: string
-  name: string
-  email: string
-  phone: string
-  password?: string
-  experience: string
-  targetExam: string
-  idDocumentName?: string
-  verificationStatus: 'unverified' | 'pending' | 'verified'
-  avatar?: string
-  role?: 'user' | 'admin'
-}
 
 function App() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
@@ -54,7 +19,7 @@ function App() {
   const [activeNavTab, setActiveNavTab] = useState('chats')
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [registeredUser, setRegisteredUser] = useState<RegisteredUser | null>(null)
+  const [registeredUser, setRegisteredUser] = useState<User | null>(null)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -97,7 +62,7 @@ function App() {
         if (tokenManager.isAuthenticated()) {
           const response = await authAPI.verifyToken()
           setRegisteredUser(response.user)
-          setCurrentUserId(response.user.id || response.user._id)
+          setCurrentUserId(response.user.id || response.user._id || null)
           setIsAuthenticated(true)
         }
       } catch (err) {
@@ -111,14 +76,14 @@ function App() {
     checkAuth()
   }, [])
 
-  async function handleSignup(data: RegisteredUser) {
+  async function handleSignup(data: User) {
     setIsLoading(true)
     setError(null)
     try {
       const response = await authAPI.signup(data)
       tokenManager.setToken(response.token)
       setRegisteredUser(response.user)
-      setCurrentUserId(response.user.id || response.user._id)
+      setCurrentUserId(response.user.id || response.user._id || null)
       setIsAuthenticated(true)
     } catch (err: any) {
       setError(err.message || 'Signup failed')
@@ -134,7 +99,7 @@ function App() {
       const response = await authAPI.googleSignIn('', '', idToken)
       tokenManager.setToken(response.token)
       setRegisteredUser(response.user)
-      setCurrentUserId(response.user.id || response.user._id)
+      setCurrentUserId(response.user.id || response.user._id || null)
       setIsAuthenticated(true)
     } catch (err: any) {
       setError(err.message || 'Google sign-in failed')
@@ -155,7 +120,7 @@ function App() {
       const response = await authAPI.login(identifier, password)
       tokenManager.setToken(response.token)
       setRegisteredUser(response.user)
-      setCurrentUserId(response.user.id || response.user._id)
+      setCurrentUserId(response.user.id || response.user._id || null)
       setIsAuthenticated(true)
     } catch (err: any) {
       setError(err.message || 'Login failed')
@@ -220,7 +185,7 @@ function App() {
           <CompleteProfileModal
             userId={currentUserId || ''}
             onComplete={(updates) => {
-              setRegisteredUser(prev => prev ? { ...prev, ...updates } : null)
+              setRegisteredUser((prev: User | null): User | null => prev ? { ...prev, ...updates } : null)
             }}
           />
         )}

@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { userAPI, chatAPI } from '../services/api'
-import type { Conversation } from '../App'
+import { useState, useEffect, useRef } from 'react'
+import { userAPI, chatAPI, type Conversation, type User } from '../services/api_service'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -8,15 +7,6 @@ interface SidebarProps {
   onSelectConversation: (conv: Conversation) => void
   onConversationCreated: (conv: Conversation) => void
   currentUserId: string
-}
-
-interface SearchUser {
-  _id: string
-  name: string
-  email: string
-  avatar: string
-  phone?: string
-  verificationStatus?: string
 }
 
 function PersonAvatar() {
@@ -53,8 +43,8 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const [searchFocused, setSearchFocused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
-  const [allUsers, setAllUsers] = useState<SearchUser[]>([])
-  const [searchResults, setSearchResults] = useState<SearchUser[]>([])
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [searchResults, setSearchResults] = useState<User[]>([])
   const [newChatSearch, setNewChatSearch] = useState('')
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [creatingConversation, setCreatingConversation] = useState(false)
@@ -65,7 +55,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   // Get the "other" participant in a 1-on-1 conversation
   function getOtherParticipant(conv: Conversation) {
     if (conv.isGroup) return null
-    return conv.participants.find(p => p._id !== currentUserId) || conv.participants[0]
+    return conv.participants.find((p: User) => p._id !== currentUserId) || conv.participants[0]
   }
 
   // Get display name for conversation
@@ -79,7 +69,14 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   function getLastMessagePreview(conv: Conversation): string {
     if (!conv.lastMessage) return 'No messages yet'
     const msg = conv.lastMessage
-    const isMine = msg.senderId?._id === currentUserId
+    
+    // Safety check for senderId
+    let senderId = ''
+    if (msg.senderId) {
+      senderId = typeof msg.senderId === 'string' ? msg.senderId : (msg.senderId._id || msg.senderId.id || '')
+    }
+    
+    const isMine = senderId === currentUserId
     const prefix = isMine ? 'You: ' : ''
     const text = msg.text || ''
     return prefix + (text.length > 50 ? text.substring(0, 50) + '...' : text)
@@ -87,7 +84,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
 
   // Get unread count for current user
   function getUnreadCount(conv: Conversation): number {
-    const entry = conv.unreadCounts?.find(u => u.userId === currentUserId)
+    const entry = conv.unreadCounts?.find((u: { userId: string, count: number }) => u.userId === currentUserId)
     return entry?.count || 0
   }
 
@@ -107,7 +104,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
     setLoadingUsers(true)
     try {
       const response = await userAPI.getAllUsers()
-      const users = (response.users || []).filter((u: SearchUser) => u._id !== currentUserId)
+      const users = (response.users || []).filter((u: User) => (u._id || u.id) !== currentUserId)
       setAllUsers(users)
       setSearchResults(users)
     } catch (err) {
@@ -125,8 +122,8 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
       return
     }
     const query = newChatSearch.toLowerCase()
-    setSearchResults(allUsers.filter(u =>
-      u.name.toLowerCase().includes(query) || u.email.toLowerCase().includes(query)
+    setSearchResults(allUsers.filter((u: User) =>
+      (u.name || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query)
     ))
   }, [newChatSearch, allUsers, showNewChat])
 
@@ -226,7 +223,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
               {searchResults.map((user) => (
                 <button
                   key={user._id}
-                  onClick={() => startConversation(user._id)}
+                  onClick={() => user._id && startConversation(user._id)}
                   disabled={creatingConversation}
                   className="flex items-center pl-[18px] pr-[18px] cursor-pointer transition-colors duration-100 hover:bg-[#eff6ff] w-full text-left"
                 >

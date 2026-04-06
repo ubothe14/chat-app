@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { userAPI } from '../services/api'
+import { userAPI, type User } from '../services/api_service'
 
 
 interface CompleteProfileModalProps {
   userId: string
-  onComplete: (updatedData: { phone: string; experience: string; targetExam: string; verificationStatus: 'verified' | 'pending' | 'unverified' }) => void
+  onComplete: (updatedData: Partial<User>) => void
 }
 
 function Field({ label, type, value, onChange, placeholder, options }: {

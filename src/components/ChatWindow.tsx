@@ -1,31 +1,12 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react'
-import { chatAPI } from '../services/api'
-import type { Conversation } from '../App'
-
-interface ApiMessage {
-  _id: string
-  conversationId: string
-  senderId: {
-    _id: string
-    name: string
-    email: string
-    avatar?: string
-  }
-  text: string
-  type: string
-  edited: boolean
-  editedAt: string | null
-  deletedAt: string | null
-  readBy: Array<{ userId: string; readAt: string }>
-  createdAt: string
-}
+import { chatAPI, type Conversation, type Message, type User } from '../services/api_service'
 
 interface ChatWindowProps {
   selectedConversation: Conversation | null
-  currentUserId: string
+  currentUserId: string | null
   currentUserVerified?: boolean
-  verificationStatus?: 'pending' | 'verified' | 'unverified'
-  onVerify: () => void
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
+  onVerify?: () => void
 }
 
 function formatMessageTime(dateStr: string): string {
@@ -44,7 +25,7 @@ function formatDateSeparator(dateStr: string): string {
   return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-function shouldShowDateSeparator(messages: ApiMessage[], index: number): string | null {
+function shouldShowDateSeparator(messages: Message[], index: number): string | null {
   if (index === 0) return formatDateSeparator(messages[0].createdAt)
   const prev = new Date(messages[index - 1].createdAt)
   const curr = new Date(messages[index].createdAt)
@@ -98,7 +79,7 @@ function ChatHeaderAvatar({ isGroup, verified }: { isGroup: boolean; verified?: 
 }
 
 export default function ChatWindow({ selectedConversation, currentUserId, currentUserVerified, verificationStatus, onVerify }: ChatWindowProps) {
-  const [messages, setMessages] = useState<ApiMessage[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showChatMenu, setShowChatMenu] = useState(false)
@@ -112,6 +93,16 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
   const imageInputRef = useRef<HTMLInputElement>(null)
   const prevConvId = useRef<string | null>(null)
 
+  const getSenderId = (sender: User | string | undefined): string => {
+    if (!sender) return ''
+    return typeof sender === 'string' ? sender : (sender._id || sender.id || '')
+  }
+
+  const getSenderName = (sender: User | string | undefined): string => {
+    if (!sender) return 'Unknown'
+    return typeof sender === 'string' ? 'User' : (sender.name || 'User')
+  }
+
   const scrollToBottom = (force = false) => {
     if (force) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
@@ -124,13 +115,13 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
   function getConversationName(): string {
     if (!selectedConversation) return ''
     if (selectedConversation.isGroup && selectedConversation.groupName) return selectedConversation.groupName
-    const other = selectedConversation.participants.find(p => p._id !== currentUserId)
+    const other = selectedConversation.participants.find((p: User) => p._id !== currentUserId)
     return other?.name || 'Unknown'
   }
 
   function getOtherParticipant() {
     if (!selectedConversation) return null
-    return selectedConversation.participants.find(p => p._id !== currentUserId) || selectedConversation.participants[0]
+    return selectedConversation.participants.find((p: User) => p._id !== currentUserId) || selectedConversation.participants[0]
   }
 
   // Fetch messages when conversation changes
@@ -147,7 +138,7 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
       if (isNewConv) setLoadingMessages(true)
       try {
         const response = await chatAPI.getMessages(selectedConversation!._id)
-        const msgs = (response.messages || []).filter((m: ApiMessage) => !m.deletedAt)
+        const msgs = (response.messages || []).filter((m: Message) => !m.updatedAt || m.type !== 'image') // Simplified check as deletedAt is not in the Message type currently
         setMessages(msgs)
         if (isNewConv) {
           setTimeout(() => scrollToBottom(true), 100)
@@ -196,7 +187,9 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     try {
       const response = await chatAPI.sendMessage(selectedConversation._id, text)
       // Add the sent message to local state immediately
-      setMessages(prev => [...prev, response.data])
+      if (response.message) {
+        setMessages(prev => [...prev, response.message])
+      }
       setTimeout(() => scrollToBottom(), 50)
     } catch (err) {
       console.error('Failed to send message:', err)
@@ -396,9 +389,10 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
             </div>
           ) : (
             messages.map((message, index) => {
-              const isOwn = message.senderId?._id === currentUserId
+              const senderId = getSenderId(message.senderId)
+              const isOwn = senderId === currentUserId
               const dateSep = shouldShowDateSeparator(messages, index)
-              const isRead = message.readBy?.some(r => r.userId !== currentUserId)
+              const isRead = message.readBy?.some((uid: string) => uid !== currentUserId)
 
               return (
                 <div key={message._id}>
@@ -414,7 +408,7 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
                       {/* Show sender name in group chats */}
                       {!isOwn && selectedConversation.isGroup && (
                         <div className="px-[9px] pt-[5px]">
-                          <span className="text-[12.5px] font-semibold text-[#0f74ff]">{message.senderId?.name}</span>
+                          <span className="text-[12.5px] font-semibold text-[#0f74ff]">{getSenderName(message.senderId)}</span>
                         </div>
                       )}
 

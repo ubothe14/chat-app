@@ -1,17 +1,5 @@
 import { useState, useEffect } from 'react'
-import { userAPI } from '../services/api'
-
-interface User {
-  _id: string
-  name: string
-  email: string
-  phone: string
-  role: 'user' | 'admin'
-  verificationStatus: 'unverified' | 'pending' | 'verified' | 'rejected'
-  isActive: boolean
-  createdAt: string
-  lastLogin?: string
-}
+import { userAPI, type User } from '../services/api_service'
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([])
@@ -29,8 +17,10 @@ export default function AdminPanel() {
       setLoading(true)
       const response = await userAPI.getAllUsersAdmin({ page: currentPage, limit: 10 })
       setUsers(response.users)
-      setTotalPages(response.pagination.pages)
-    } catch (err) {
+      if (response.pagination) {
+        setTotalPages(response.pagination.pages)
+      }
+    } catch (err: any) {
       setError(err.message || 'Failed to load users')
     } finally {
       setLoading(false)
@@ -41,7 +31,7 @@ export default function AdminPanel() {
     try {
       await userAPI.updateUserRole(userId, role)
       await loadUsers() // Reload users
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Failed to update user role')
     }
   }
@@ -50,7 +40,7 @@ export default function AdminPanel() {
     try {
       await userAPI.updateUserStatus(userId, isActive)
       await loadUsers()
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Failed to update user status')
     }
   }
@@ -61,7 +51,7 @@ export default function AdminPanel() {
     try {
       await userAPI.deleteUser(userId)
       await loadUsers()
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message || 'Failed to delete user')
     }
   }
@@ -158,7 +148,7 @@ export default function AdminPanel() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select
                       value={user.role}
-                      onChange={(e) => updateUserRole(user._id, e.target.value as 'user' | 'admin')}
+                      onChange={(e) => updateUserRole(user._id || '', e.target.value as 'user' | 'admin')}
                       className="text-sm border border-gray-300 rounded px-2 py-1"
                     >
                       <option value="user">User</option>
@@ -166,11 +156,11 @@ export default function AdminPanel() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
-                      onClick={() => toggleUserStatus(user._id, !user.isActive)}
+                      onClick={() => toggleUserStatus(user._id || '', !user.isActive)}
                       className={`mr-2 px-3 py-1 rounded text-xs ${
                         user.isActive
                           ? 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -180,7 +170,7 @@ export default function AdminPanel() {
                       {user.isActive ? 'Deactivate' : 'Activate'}
                     </button>
                     <button
-                      onClick={() => deleteUser(user._id)}
+                      onClick={() => deleteUser(user._id || '')}
                       className="px-3 py-1 rounded text-xs bg-red-100 text-red-800 hover:bg-red-200"
                     >
                       Delete

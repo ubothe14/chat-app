@@ -3,7 +3,7 @@ interface SidebarNavProps {
     onTabChange: (tab: string) => void
     onLogout?: () => void
     userRole?: string
-    verificationStatus?: string
+    verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
 }
 
 export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole, verificationStatus }: SidebarNavProps) {
