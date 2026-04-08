@@ -72,8 +72,8 @@ router.post('/send', verifyToken, async (req, res) => {
     await conversation.save()
 
     res.status(201).json({
-      message: 'Message sent successfully',
-      data: newMessage,
+      message: newMessage,
+      success: true,
     })
   } catch (error) {
     res.status(500).json({ error: 'Failed to send message', message: error.message })
@@ -120,6 +120,39 @@ router.post('/conversation', verifyToken, async (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ error: 'Failed to create conversation', message: error.message })
+  }
+})
+
+// Create new group
+router.post('/group/create', verifyToken, async (req, res) => {
+  try {
+    const { participants, groupName, groupIcon } = req.body
+
+    if (!groupName || !participants || !Array.isArray(participants) || participants.length < 1) {
+      return res.status(400).json({ error: 'Group name and at least one other participant are required' })
+    }
+
+    // Include the creator in the participants if not already there
+    const allParticipants = Array.from(new Set([...participants, req.userId]))
+
+    // Create new group conversation
+    const conversation = new Conversation({
+      participants: allParticipants,
+      isGroup: true,
+      groupName,
+      groupIcon,
+      createdBy: req.userId,
+    })
+
+    await conversation.save()
+    await conversation.populate('participants', 'name email avatar verificationStatus')
+
+    res.status(201).json({
+      message: 'Group created successfully',
+      conversation,
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create group', message: error.message })
   }
 })
 
@@ -204,6 +237,58 @@ router.post('/conversation/:conversationId/mark-read', verifyToken, async (req, 
     res.json({ message: 'Messages marked as read' })
   } catch (error) {
     res.status(500).json({ error: 'Failed to mark messages as read', message: error.message })
+  }
+})
+
+// React to a message
+router.patch('/message/:messageId/react', verifyToken, async (req, res) => {
+  try {
+    const { messageId } = req.params
+    const { emoji } = req.body
+
+    const message = await Message.findById(messageId)
+    if (!message) return res.status(404).json({ error: 'Message not found' })
+
+    // Find if user already reacted
+    const reactionIndex = message.reactions.findIndex(r => r.userId.toString() === req.userId)
+
+    if (reactionIndex > -1) {
+      if (message.reactions[reactionIndex].emoji === emoji) {
+        // Toggle off if same emoji
+        message.reactions.splice(reactionIndex, 1)
+      } else {
+        // Update to new emoji
+        message.reactions[reactionIndex].emoji = emoji
+      }
+    } else {
+      // Add new reaction
+      message.reactions.push({ userId: req.userId, emoji })
+    }
+
+    await message.save()
+    res.json({ message: 'Reaction updated', reactions: message.reactions })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update reaction', message: error.message })
+  }
+})
+
+// Bulk delete messages
+router.post('/messages/bulk-delete', verifyToken, async (req, res) => {
+  try {
+    const { messageIds } = req.body
+    if (!messageIds || !Array.isArray(messageIds)) {
+      return res.status(400).json({ error: 'Message IDs array is required' })
+    }
+
+    // Only allow users to delete their own messages in bulk
+    await Message.updateMany(
+      { _id: { $in: messageIds }, senderId: req.userId },
+      { deletedAt: new Date() }
+    )
+
+    res.json({ message: 'Messages deleted successfully' })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete messages', message: error.message })
   }
 })
 

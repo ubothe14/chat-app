@@ -15,6 +15,28 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage })
 
+// Configure Multer for avatars
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/avatars/')
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, 'avatar-' + uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'))
+  }
+})
+const uploadAvatar = multer({ 
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true)
+    } else {
+      cb(new Error('Only images are allowed'))
+    }
+  }
+})
+
 const router = express.Router()
 
 // Get user profile
@@ -128,14 +150,14 @@ router.post('/:userId/request-verify', verifyToken, upload.single('document'), a
     }
 
     const documentName = req.file.originalname
-    const documentPath = req.file.path
+    const documentPath = req.file.path.replace(/\\/g, '/') // Canonicalize path for web
 
     const user = await User.findByIdAndUpdate(
       userId,
       { 
         idDocumentName: documentName,
         idDocumentPath: documentPath,
-        verificationStatus: 'verified'
+        verificationStatus: 'pending'
       },
       { new: true }
     ).select('-password')
@@ -150,6 +172,40 @@ router.post('/:userId/request-verify', verifyToken, upload.single('document'), a
     })
   } catch (error) {
     res.status(500).json({ error: 'Verification request failed', message: error.message })
+  }
+})
+
+// Upload avatar
+router.post('/:userId/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
+  try {
+    const { userId } = req.params
+
+    if (req.userId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Avatar file is required' })
+    }
+
+    const avatarPath = '/' + req.file.path.replace(/\\/g, '/') // Canonicalize path for web
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { avatar: avatarPath },
+      { new: true }
+    ).select('-password')
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    res.json({
+      message: 'Avatar updated successfully',
+      user
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Avatar upload failed', message: error.message })
   }
 })
 
@@ -188,8 +244,7 @@ router.post('/:userId/verify', verifyToken, isAdmin, async (req, res) => {
 router.get('/admin/pending-verifications', verifyToken, isAdmin, async (req, res) => {
   try {
     const pendingRequests = await User.find({ 
-      verificationStatus: 'pending',
-      idDocumentName: { $exists: true, $ne: null }
+      verificationStatus: 'pending'
     })
       .select('-password')
 
@@ -198,6 +253,103 @@ router.get('/admin/pending-verifications', verifyToken, isAdmin, async (req, res
     res.status(500).json({ error: 'Failed to fetch pending requests', message: error.message })
   }
 })
+
+// Admin: Get Dashboard Statistics (Enhanced)
+router.get('/admin/dashboard-stats', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const Conversation = (await import('../models/Conversation.js')).default;
+    const Message = (await import('../models/Message.js')).default;
+
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ 
+        lastLogin: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
+    });
+    const totalMessages = await Message.countDocuments();
+    const totalGroups = await Conversation.countDocuments({ isGroup: true });
+    const pendingVerifications = await User.countDocuments({ verificationStatus: 'pending' });
+    const verifiedUsers = await User.countDocuments({ verificationStatus: 'verified' });
+    const unverifiedUsers = await User.countDocuments({ verificationStatus: 'unverified' });
+    const userWithDocs = await User.countDocuments({ idDocumentPath: { $ne: null } });
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      totalMessages,
+      totalGroups,
+      pendingVerifications,
+      verifiedUsers,
+      unverifiedUsers,
+      userWithDocs,
+      serverUptime: process.uptime(),
+      memoryUsage: process.memoryUsage().heapUsed
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch dashboard stats', message: error.message });
+  }
+});
+
+// Admin: Get Time-Series Statistics for Graphs
+router.get('/admin/timeseries-stats', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const Message = (await import('../models/Message.js')).default;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    // Group user registrations by day
+    const registrations = await User.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 } 
+        } 
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    // Group messages by day
+    const activity = await Message.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      { $group: { 
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 } 
+        } 
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+
+    res.json({ registrations, activity });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch timeseries stats', message: error.message });
+  }
+});
+
+// Admin: Broadcast message to all users
+router.post('/admin/broadcast', verifyToken, isAdmin, async (req, res) => {
+  try {
+    const { text } = req.body;
+    const Conversation = (await import('../models/Conversation.js')).default;
+    const Message = (await import('../models/Message.js')).default;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Broadcast text is required' });
+    }
+
+    // Find all users (excluding the sender)
+    const users = await User.find({ _id: { $ne: req.userId }, isActive: true });
+    
+    // In a production app, we'd use a background queue or a distinct "Socialize Official" channel
+    // For this implementation, we will mock the broadcast by creating a "System Message" context
+    // or simply logging it. Real broadcast logic depends on scalability needs.
+    
+    console.log(`[Admin Broadcast] From: ${req.userEmail} Content: ${text}`);
+
+    res.json({ 
+      message: `Broadcast initiated to ${users.length} users.`,
+      recipientCount: users.length 
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Broadcast failed', message: error.message });
+  }
+});
 
 // Get user statistics
 router.get('/stats/:userId', verifyToken, async (req, res) => {

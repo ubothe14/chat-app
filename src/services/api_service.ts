@@ -2,6 +2,14 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5006/api'
 
+export function getFullImageUrl(path: string | undefined | null) {
+  if (!path) return null
+  if (path.startsWith('http')) return path
+  const backendUrl = API_URL.replace('/api', '')
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  return `${backendUrl}${cleanPath}`
+}
+
 export interface User {
   _id?: string
   id?: string
@@ -11,6 +19,7 @@ export interface User {
   phone?: string
   password?: string
   idDocumentName?: string
+  idDocumentPath?: string
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
   role?: 'user' | 'admin'
   experience?: string
@@ -29,7 +38,8 @@ export interface Message {
   edited?: boolean
   editedAt?: string | null
   deletedAt?: string | null
-  readBy?: string[]
+  readBy?: { userId: string; readAt: string }[]
+  reactions?: { userId: string; emoji: string }[]
   createdAt: string
   updatedAt?: string
 }
@@ -103,10 +113,10 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     }),
 
-  googleSignIn: (email: string, name: string, idToken: string) =>
+  googleSignIn: (idToken: string) =>
     apiCall<{ message: string; token: string; user: User }>('/auth/google-signin', {
       method: 'POST',
-      body: JSON.stringify({ email, name, idToken }),
+      body: JSON.stringify({ idToken }),
     }),
 
   verifyToken: () =>
@@ -154,6 +164,12 @@ export const userAPI = {
       body: formData,
     }),
 
+  uploadAvatar: (userId: string, formData: FormData) =>
+    apiCall<{ message: string; user: User }>(`/users/${userId}/avatar`, {
+      method: 'POST',
+      body: formData,
+    }),
+
   verifyUser: (userId: string, action: 'approve' | 'reject') =>
     apiCall<{ message: string; user: User }>(`/users/${userId}/verify`, {
       method: 'POST',
@@ -161,8 +177,38 @@ export const userAPI = {
     }),
 
   getPendingVerifications: () =>
-    apiCall<{ users: User[] }>('/users/admin/pending-verifications', {
+    apiCall<{ pendingRequests: User[] }>('/users/admin/pending-verifications', {
       method: 'GET',
+    }),
+
+  getAdminDashboardStats: () =>
+    apiCall<{
+      totalUsers: number;
+      activeUsers: number;
+      totalMessages: number;
+      totalGroups: number;
+      pendingVerifications: number;
+      verifiedUsers: number;
+      unverifiedUsers: number;
+      userWithDocs: number;
+      serverUptime: number;
+      memoryUsage: number;
+    }>('/users/admin/dashboard-stats', {
+      method: 'GET',
+    }),
+
+  getAdminTimeseriesStats: () =>
+    apiCall<{
+      registrations: Array<{ _id: string; count: number }>;
+      activity: Array<{ _id: string; count: number }>;
+    }>('/users/admin/timeseries-stats', {
+      method: 'GET',
+    }),
+
+  broadcastMessage: (text: string) =>
+    apiCall<{ message: string; recipientCount: number }>('/users/admin/broadcast', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
     }),
 
   getAllUsersAdmin: (params: any = {}) =>
@@ -217,6 +263,12 @@ export const chatAPI = {
       body: JSON.stringify({ recipientId }),
     }),
 
+  createGroup: (participants: string[], groupName: string, groupIcon?: string) =>
+    apiCall<{ conversation: Conversation }>('/chat/group/create', {
+      method: 'POST',
+      body: JSON.stringify({ participants, groupName, groupIcon }),
+    }),
+
   editMessage: (messageId: string, text: string) =>
     apiCall<{ message: Message }>(`/chat/${messageId}`, {
       method: 'PUT',
@@ -237,6 +289,18 @@ export const chatAPI = {
     apiCall<any>(`/chat/stats/${userId}`, {
       method: 'GET',
     }),
+
+  reactToMessage: (messageId: string, emoji: string) =>
+    apiCall<{ message: string; reactions: any[] }>(`/chat/message/${messageId}/react`, {
+      method: 'PATCH',
+      body: JSON.stringify({ emoji }),
+    }),
+
+  deleteMessagesBulk: (messageIds: string[]) =>
+    apiCall<{ message: string }>('/chat/messages/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ messageIds }),
+    }),
 }
 
 // Helper to manage auth token
@@ -256,4 +320,14 @@ export const tokenManager = {
   isAuthenticated: () => {
     return !!localStorage.getItem('authToken')
   },
+}
+
+export const videoAPI = {
+  getToken: () =>
+    apiCall<{ token: string; apiKey: string }>('/video/token'),
+  syncUsers: (userIds: string[]) =>
+    apiCall<{ success: boolean; count: number }>('/video/sync-users', {
+      method: 'POST',
+      body: JSON.stringify({ userIds }),
+    }),
 }

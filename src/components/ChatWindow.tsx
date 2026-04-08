@@ -1,21 +1,38 @@
 import { useState, useRef, useEffect, type KeyboardEvent, type ChangeEvent } from 'react'
-import { chatAPI, type Conversation, type Message, type User } from '../services/api_service'
+import { chatAPI, videoAPI, getFullImageUrl, type Conversation, type Message, type User } from '../services/api_service'
+import { socketService } from '../services/socket_service'
+import { 
+  StreamCall, 
+  SpeakerLayout, 
+  CallControls,
+  StreamTheme
+} from '@stream-io/video-react-sdk'
+import { Smile, Plus } from 'lucide-react'
 
 interface ChatWindowProps {
   selectedConversation: Conversation | null
   currentUserId: string | null
-  currentUserVerified?: boolean
-  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
-  onVerify?: () => void
+  currentUser?: any | null
+  onBack?: () => void
+  isMobile?: boolean
+  videoClient: any
+  onStartCall: (data: { conversationId: string, userName: string, userAvatar?: string, participants: string[] }) => void
+  activeCall: any
+  setActiveCall: (call: any) => void
 }
 
-function formatMessageTime(dateStr: string): string {
+function formatMessageTime(dateStr: string | undefined): string {
+  if (!dateStr) return ''
   const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase()
 }
 
-function formatDateSeparator(dateStr: string): string {
+function formatDateSeparator(dateStr: string | undefined): string {
+  if (!dateStr) return ''
   const date = new Date(dateStr)
+  if (isNaN(date.getTime())) return ''
+  
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
@@ -35,7 +52,34 @@ function shouldShowDateSeparator(messages: Message[], index: number): string | n
   return null
 }
 
-function ChatHeaderAvatar({ isGroup, verified }: { isGroup: boolean; verified?: boolean }) {
+function MessageAvatar({ user }: { user?: User | string }) {
+  if (!user || typeof user === 'string') {
+    return (
+      <div className="w-[32px] h-[32px] rounded-full bg-slate-200 flex items-center justify-center text-[12px] font-bold text-slate-500 flex-shrink-0 mt-1 shadow-sm">
+        ?
+      </div>
+    )
+  }
+  
+  const avatarUrl = user.avatar ? getFullImageUrl(user.avatar) : null
+  
+  return (
+    <div className="w-[32px] h-[32px] rounded-full overflow-hidden flex-shrink-0 mt-1 shadow-sm border border-white/50">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-slate-100 flex items-center justify-center text-[14px] font-bold text-wa-primary">
+          {user.name?.charAt(0) || 'U'}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChatHeaderAvatar({ isGroup, status }: { isGroup: boolean; status?: string }) {
+  const isVerified = status === 'verified' || status === 'pending'
+  const isUnverified = status === 'unverified'
+  
   return (
     <div className="relative w-[40px] h-[40px] rounded-full overflow-hidden flex-shrink-0">
       <svg viewBox="0 0 212 212" width="40" height="40">
@@ -53,7 +97,7 @@ function ChatHeaderAvatar({ isGroup, verified }: { isGroup: boolean; verified?: 
           </>
         )}
       </svg>
-      {verified !== undefined && (
+      {(isVerified || isUnverified) && (
         <span style={{
           position: 'absolute',
           bottom: '-2px',
@@ -64,34 +108,51 @@ function ChatHeaderAvatar({ isGroup, verified }: { isGroup: boolean; verified?: 
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: verified ? '#16a34a' : '#f59e0b',
+          background: isVerified ? '#16a34a' : '#f59e0b',
           color: '#fff',
           fontSize: '12px',
           fontWeight: 700,
           border: '2px solid #fff',
           boxShadow: '0 0 0 1px rgba(15,23,42,0.12)',
         }}>
-          {verified ? '✓' : '!'}
+          {isVerified ? '✓' : '!'}
         </span>
       )}
     </div>
   )
 }
 
-export default function ChatWindow({ selectedConversation, currentUserId, currentUserVerified, verificationStatus, onVerify }: ChatWindowProps) {
+export default function ChatWindow({ 
+  selectedConversation, 
+  currentUserId, 
+  currentUser, 
+  onBack, 
+  isMobile,
+  videoClient,
+  onStartCall,
+  activeCall,
+  setActiveCall
+}: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
   const [showAttachMenu, setShowAttachMenu] = useState(false)
   const [showChatMenu, setShowChatMenu] = useState(false)
-  const [showEmojiHint, setShowEmojiHint] = useState(false)
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [reactionMenuId, setReactionMenuId] = useState<string | null>(null)
+  const [refetchTrigger, setRefetchTrigger] = useState(0)
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [typingStatus, setTypingStatus] = useState<{ userId: string; userName: string } | null>(null)
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const attachRef = useRef<HTMLDivElement>(null)
   const chatMenuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const prevConvId = useRef<string | null>(null)
+  const typingTimeoutRef = useRef<any>(null)
 
   const getSenderId = (sender: User | string | undefined): string => {
     if (!sender) return ''
@@ -104,14 +165,15 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
   }
 
   const scrollToBottom = (force = false) => {
-    if (force) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollContainerRef.current) {
+      if (force) {
+        scrollContainerRef.current.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'auto' });
+      } else {
+        scrollContainerRef.current.scrollTo({ top: scrollContainerRef.current.scrollHeight, behavior: 'smooth' });
+      }
     }
   }
 
-  // Get conversation display name
   function getConversationName(): string {
     if (!selectedConversation) return ''
     if (selectedConversation.isGroup && selectedConversation.groupName) return selectedConversation.groupName
@@ -124,7 +186,7 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     return selectedConversation.participants.find((p: User) => p._id !== currentUserId) || selectedConversation.participants[0]
   }
 
-  // Fetch messages when conversation changes
+
   useEffect(() => {
     if (!selectedConversation?._id) {
       setMessages([])
@@ -134,11 +196,14 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     const isNewConv = prevConvId.current !== selectedConversation._id
     prevConvId.current = selectedConversation._id
 
-    async function fetchMessages() {
+    // Join room
+    socketService.joinChat(selectedConversation._id)
+
+    const fetchMessages = async () => {
       if (isNewConv) setLoadingMessages(true)
       try {
         const response = await chatAPI.getMessages(selectedConversation!._id)
-        const msgs = (response.messages || []).filter((m: Message) => !m.updatedAt || m.type !== 'image') // Simplified check as deletedAt is not in the Message type currently
+        const msgs = (response.messages || []).filter((m: Message) => !m.updatedAt || m.type !== 'image')
         setMessages(msgs)
         if (isNewConv) {
           setTimeout(() => scrollToBottom(true), 100)
@@ -152,13 +217,73 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
 
     fetchMessages()
 
-    // Mark as read
+    const handleIncomingMessage = (msg: any) => {
+      if (msg.conversationId === selectedConversation._id) {
+        setMessages(prev => {
+          if (prev.find(m => m._id === msg._id)) return prev
+          return [...prev, msg]
+        })
+        setTimeout(() => scrollToBottom(), 50)
+      }
+    }
+
+    const handleTypingEvent = (data: any) => {
+      if (data.conversationId === selectedConversation._id && data.userId !== currentUserId) {
+        setTypingStatus({ userId: data.userId, userName: data.userName })
+      }
+    }
+
+    const handleStopTypingEvent = (data: any) => {
+      if (data.conversationId === selectedConversation._id) {
+        setTypingStatus(null)
+      }
+    }
+
+    // Listen for real-time messages
+    socketService.onNewMessage(handleIncomingMessage)
+    socketService.onTyping(handleTypingEvent)
+    socketService.onStopTyping(handleStopTypingEvent)
+
     chatAPI.markAsRead(selectedConversation._id).catch(() => {})
 
-    // Poll for new messages every 2 seconds
-    const interval = setInterval(fetchMessages, 2000)
-    return () => clearInterval(interval)
-  }, [selectedConversation?._id])
+    return () => {
+      socketService.offNewMessage(handleIncomingMessage)
+      socketService.offTyping(handleTypingEvent)
+      socketService.offStopTyping(handleStopTypingEvent)
+      socketService.leaveChat(selectedConversation._id)
+    }
+  }, [selectedConversation?._id, refetchTrigger, videoClient, currentUserId])
+
+  const handleToggleReaction = async (messageId: string, emoji: string) => {
+    try {
+      await chatAPI.reactToMessage(messageId, emoji)
+      setReactionMenuId(null)
+      setRefetchTrigger(prev => prev + 1)
+    } catch (err) {
+      console.error('Failed to react:', err)
+    }
+  }
+
+  const handleToggleSelect = (messageId: string) => {
+    if (!isSelectionMode) setIsSelectionMode(true)
+    setSelectedIds(prev => 
+      prev.includes(messageId) ? prev.filter(id => id !== messageId) : [...prev, messageId]
+    )
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return
+    if (!confirm(`Delete ${selectedIds.length} messages?`)) return
+    
+    try {
+      await chatAPI.deleteMessagesBulk(selectedIds)
+      setSelectedIds([])
+      setIsSelectionMode(false)
+      setRefetchTrigger(prev => prev + 1)
+    } catch (err) {
+      console.error('Failed to delete bulk:', err)
+    }
+  }
 
   // Scroll to bottom when new messages arrive (only if near bottom)
   useEffect(() => {
@@ -189,6 +314,7 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
       // Add the sent message to local state immediately
       if (response.message) {
         setMessages(prev => [...prev, response.message])
+        socketService.emitSendMessage({ ...response.message, conversationId: selectedConversation._id })
       }
       setTimeout(() => scrollToBottom(), 50)
     } catch (err) {
@@ -203,7 +329,27 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSendMessage()
+      // Stop typing on send
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      socketService.emitStopTyping(selectedConversation?._id || '', currentUserId || '')
     }
+  }
+
+  const handleInputChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMessageInput(e.target.value)
+
+    if (!selectedConversation?._id || !currentUserId) return
+
+    // Emit typing
+    socketService.emitTyping(selectedConversation._id, currentUserId, currentUser?.name || 'Someone')
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+
+    // Set new timeout to stop typing after 2 seconds
+    typingTimeoutRef.current = setTimeout(() => {
+      socketService.emitStopTyping(selectedConversation._id, currentUserId)
+    }, 2000)
   }
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, type: string) => {
@@ -224,11 +370,53 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     switch (type) {
       case 'document': openDocumentInput(); break
       case 'image': openImageInput(); break
-      case 'camera': alert('Camera — requires device camera access'); break
-      case 'contact': alert('Contact sharing — Coming soon!'); break
-      case 'poll': alert('Poll creation — Coming soon!'); break
+      case 'camera': console.log('Camera — requires device camera access'); break
+      case 'contact': console.log('Contact sharing — Coming soon!'); break
+      case 'poll': console.log('Poll creation — Coming soon!'); break
     }
   }
+
+  const initiateVideoCall = async () => {
+    if (!videoClient || !selectedConversation?._id) {
+      console.warn('❌ Video Error: Client not ready');
+      return
+    }
+
+    try {
+      console.log('Syncing participants...');
+      const participants = selectedConversation.participants.map(p => p._id || p.id || '');
+      await videoAPI.syncUsers(participants);
+
+      console.log('Preparing call...');
+      const call = videoClient.call('default', selectedConversation._id)
+      await call.getOrCreate({
+        data: {
+          members: participants.map(id => ({ user_id: id })),
+          custom: { conversationName: getConversationName() }
+        }
+      })
+
+      // Show our "Calling..." overlay
+      const otherUser = selectedConversation.participants.find(p => p._id !== currentUserId)
+      onStartCall({
+        conversationId: selectedConversation._id,
+        userName: otherUser?.name || 'User',
+        userAvatar: otherUser?.avatar ? (getFullImageUrl(otherUser.avatar) ?? undefined) : undefined,
+        participants: selectedConversation.participants.map(p => p._id || p.id || '')
+      })
+      
+      // We join immediately but hide behind overlay until accepted? 
+      // Actually, better to join only when accepted or just join and let the overlay cover it.
+      // Let's join and let the overlay manage the view.
+      await call.join()
+      setActiveCall(call)
+
+    } catch (err: any) {
+      console.error('❌ Call initiation failed:', err)
+    }
+  }
+
+
 
   const attachOptions = [
     {
@@ -262,12 +450,12 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
     {
       label: 'Contact info',
       icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="#64748b"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>,
-      action: () => alert('Contact info panel'),
+      action: () => console.log('Contact info panel'),
     },
     {
       label: 'Select messages',
       icon: <svg viewBox="0 0 24 24" width="18" height="18" fill="#64748b"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>,
-      action: () => alert('Select messages mode'),
+      action: () => console.log('Select messages mode'),
     },
     { divider: true },
     {
@@ -280,7 +468,7 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
   // Empty state
   if (!selectedConversation) {
     return (
-      <div className="flex-1 bg-[#eff6ff] flex flex-col items-center justify-center relative">
+      <div className="flex-1 bg-transparent flex flex-col items-center justify-center relative">
         <div className="absolute bottom-0 left-0 right-0 h-[6px] bg-[#0f74ff]" />
         <div className="text-center max-w-[500px] px-6">
           <div className="mb-[28px] flex justify-center">
@@ -309,57 +497,71 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
   const otherParticipant = getOtherParticipant()
 
   return (
-    <div className="flex flex-col flex-1 h-screen min-w-0">
+    <div className="flex flex-col flex-1 h-full min-w-0 bg-transparent">
       {/* Chat Header */}
-      <div className="h-[60px] bg-[#eff6ff] flex items-center justify-between px-[16px] flex-shrink-0">
-        <div className="flex items-center gap-[12px] min-w-0 cursor-pointer">
-          <ChatHeaderAvatar isGroup={selectedConversation.isGroup} verified={currentUserVerified} />
+      <div className="h-[60px] glass-panel border-b-0 border-wa-border flex items-center justify-between px-[16px] flex-shrink-0 z-10 m-2 rounded-xl mb-0">
+        <div className="flex items-center gap-[8px] min-w-0 cursor-pointer">
+          {isMobile && (
+            <button 
+              onClick={onBack}
+              className="p-1 hover:bg-[#d1d7db] rounded-full transition-colors mr-1"
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="#54656f">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+              </svg>
+            </button>
+          )}
+          <ChatHeaderAvatar isGroup={selectedConversation.isGroup} status={otherParticipant?.verificationStatus} />
           <div className="min-w-0">
-            <h2 className="text-[#0f172a] text-[16px] leading-[21px] truncate">{conversationName}</h2>
-            <p className="text-[#64748b] text-[13px] leading-[20px] truncate">
-              {selectedConversation.isGroup ? 'click here for group info' : otherParticipant?.email || 'click here for contact info'}
+            <h2 className="text-wa-text-primary text-[16px] font-medium leading-[21px] truncate">{conversationName}</h2>
+            <p className="text-wa-primary text-[13px] leading-[20px] truncate h-[20px]">
+              {typingStatus ? (
+                <span className="animate-pulse">{typingStatus.userName} is typing...</span>
+              ) : (
+                <span className="text-wa-text-secondary">{selectedConversation.isGroup ? 'Group info' : 'Business Account'}</span>
+              )}
             </p>
           </div>
         </div>
-        <div className="flex items-center">
-          <div className="flex flex-col items-end gap-[2px] text-right mr-[8px]">
-            <span className={`text-[12px] font-semibold ${currentUserVerified ? 'text-[#16a34a]' : 'text-[#b45309]'}`}>
-              {verificationStatus === 'verified' ? 'Verified student' : verificationStatus === 'pending' ? 'Verification pending' : 'Unverified student'}
-            </span>
-            {verificationStatus !== 'verified' && (
-              <button
-                onClick={onVerify}
-                className="text-[#0f74ff] text-[12px] font-semibold hover:underline"
-                type="button"
-              >
-                Admin verify student
-              </button>
-            )}
-          </div>
+        <div className="flex items-center gap-[12px]">
+          {/* Main Video Call Button */}
+          <button 
+            onClick={initiateVideoCall}
+            className="flex items-center bg-white border border-wa-border rounded-full px-[14px] py-[7px] hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer group shadow-sm active:scale-95"
+            title="Start Video Call"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="#54656f" className="group-hover:fill-blue-600">
+              <path d="M18 7l4-4V17l-4-4V7zM4 6h10c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2z" />
+            </svg>
+            <span className="text-wa-text-primary text-[14px] font-semibold ml-[8px] group-hover:text-blue-600">Call</span>
+          </button>
+
+          <div className="h-[24px] w-[1px] bg-wa-border mx-1" />
 
           <div className="flex items-center gap-[2px]">
-            <button className="w-[40px] h-[40px] flex items-center justify-center rounded-full hover:bg-[#dbeafe] transition-colors" title="Search">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="#aebac1"><path d="M15.009 13.805h-.636l-.22-.219a5.184 5.184 0 0 0 1.256-3.386 5.207 5.207 0 1 0-5.207 5.208 5.183 5.183 0 0 0 3.385-1.255l.221.22v.635l4.004 3.999 1.194-1.195-3.997-4.007zm-4.808 0a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" /></svg>
+            <button className="w-[40px] h-[40px] flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-[#aebac1] hover:text-[#54656f]" title="Search">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15.009 13.805h-.636l-.22-.219a5.184 5.184 0 0 0 1.256-3.386 5.207 5.207 0 1 0-5.207 5.208 5.183 5.183 0 0 0 3.385-1.255l.221.22v.635l4.004 3.999 1.194-1.195-3.997-4.007zm-4.808 0a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" /></svg>
             </button>
+            
             {/* Chat three-dot menu */}
             <div className="relative" ref={chatMenuRef}>
               <button
                 onClick={() => setShowChatMenu(!showChatMenu)}
-                className={`w-[40px] h-[40px] flex items-center justify-center rounded-full transition-colors ${showChatMenu ? 'bg-[#dbeafe]' : 'hover:bg-[#dbeafe]'}`}
+                className={`w-[40px] h-[40px] flex items-center justify-center rounded-full transition-colors ${showChatMenu ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
                 title="Menu"
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="#aebac1"><path d="M12 7a2 2 0 1 0-.001-4.001A2 2 0 0 0 12 7zm0 2a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 9zm0 6a2 2 0 1 0-.001 3.999A2 2 0 0 0 12 15z" /></svg>
               </button>
               {showChatMenu && (
-                <div className="absolute top-[44px] right-0 w-[240px] bg-[#ffffff] border border-[#dbeafe] rounded-[16px] shadow-[0_16px_40px_rgba(15,23,42,0.14)] py-[10px] z-50">
+                <div className="absolute top-[48px] right-0 w-[240px] bg-white border border-wa-border rounded-xl shadow-xl py-[10px] z-50 animate-in fade-in zoom-in-95 duration-150">
                   {chatMenuItems.map((item, i) => (
                     'divider' in item ? (
-                      <div key={i} className="h-[1px] bg-[#eff6ff] my-[6px] mx-[12px]" />
+                      <div key={i} className="h-[1px] bg-wa-separator my-[6px] mx-[12px]" />
                     ) : (
                       <button
                         key={i}
                         onClick={() => { item.action?.(); setShowChatMenu(false) }}
-                        className="w-full px-[18px] py-[12px] flex items-center gap-[12px] text-left text-[14.5px] hover:bg-[#eff6ff] transition-colors text-[#0f172a]"
+                        className="w-full px-[18px] py-[12px] flex items-center gap-[12px] text-left text-[14.5px] hover:bg-gray-50 transition-colors text-wa-text-primary"
                       >
                         {item.icon}
                         <span>{item.label}</span>
@@ -373,9 +575,35 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {isSelectionMode && (
+        <div className="absolute top-[60px] left-0 right-0 z-20 bg-white border-b border-wa-divider shadow-md px-[24px] py-[12px] flex items-center justify-between animate-in slide-in-from-top duration-200">
+          <div className="flex items-center gap-[16px]">
+            <button onClick={() => { setIsSelectionMode(false); setSelectedIds([]) }} className="p-[8px] hover:bg-gray-100 rounded-full text-wa-text-primary">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+              </svg>
+            </button>
+            <span className="font-semibold text-wa-text-primary">{selectedIds.length} selected</span>
+          </div>
+          <button 
+            disabled={selectedIds.length === 0}
+            onClick={handleDeleteSelected}
+            className="bg-red-500 hover:bg-red-600 text-white px-[16px] py-[8px] rounded-[24px] text-[14px] font-semibold disabled:opacity-50 transition-all flex items-center gap-[8px]"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            Delete
+          </button>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto wa-chat-bg">
-        <div className="max-w-[920px] mx-auto px-[63px] py-[12px]">
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto chat-pattern-bg shadow-inner"
+        style={{ padding: '16px 12px 20px 12px' }} // T: 16, H: 12, B: 20
+      >
+        <div className="w-full py-[12px]">
           {loadingMessages ? (
             <div className="flex items-center justify-center py-[40px]">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#e0e7ff] border-t-[#4f46e5]"></div>
@@ -392,41 +620,147 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
               const senderId = getSenderId(message.senderId)
               const isOwn = senderId === currentUserId
               const dateSep = shouldShowDateSeparator(messages, index)
-              const isRead = message.readBy?.some((uid: string) => uid !== currentUserId)
+              const isSelected = selectedIds.includes(message._id)
+              const showAvatar = !isOwn && selectedConversation.isGroup
+
+              // Grouping Logic
+              const prevMsg = index > 0 ? messages[index - 1] : null
+              const nextMsg = index < messages.length - 1 ? messages[index + 1] : null
+              
+              const isFirstOfGroup = !prevMsg || getSenderId(prevMsg.senderId) !== senderId || !!dateSep
+              const isLastOfGroup = !nextMsg || getSenderId(nextMsg.senderId) !== senderId || !!shouldShowDateSeparator(messages, index + 1)
+              
+              const marginTop = isFirstOfGroup ? '10px' : '4px'
+              const showTail = isLastOfGroup // As requested: Tail ONLY for the last message in a group
 
               return (
                 <div key={message._id}>
                   {dateSep && (
-                    <div className="flex justify-center my-[12px]">
-                      <span className="date-chip">{dateSep}</span>
+                    <div className="flex justify-center my-[16px]">
+                      <span className="bg-wa-bg-dark text-wa-text-secondary text-[12.5px] px-[12px] py-[4px] rounded-[8px] uppercase tracking-wide font-medium shadow-sm">{dateSep}</span>
                     </div>
                   )}
-                  <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-[2px]`}>
-                    <div className={`relative max-w-[65%] rounded-[7.5px] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)] ${isOwn ? 'bg-[#dbeafe]' : 'bg-[#eff6ff]'
-                      } ${index === 0 && isOwn ? 'msg-out rounded-tr-none' : ''} ${index === 0 && !isOwn ? 'msg-in rounded-tl-none' : ''}`}>
-
-                      {/* Show sender name in group chats */}
-                      {!isOwn && selectedConversation.isGroup && (
-                        <div className="px-[9px] pt-[5px]">
-                          <span className="text-[12.5px] font-semibold text-[#0f74ff]">{getSenderName(message.senderId)}</span>
+                  
+                  {/* Message Row with Dynamic Spacing */}
+                  <div 
+                    className="group message-group relative flex flex-col animate-float-in"
+                    style={{ marginTop: marginTop }}
+                  >
+                    <div 
+                      className={`flex items-start gap-2 ${isOwn ? 'justify-end' : 'justify-start'} w-full transition-colors duration-200 ${isSelected ? 'bg-wa-primary/5' : ''}`}
+                      onContextMenu={(e) => {
+                        e.preventDefault()
+                        if (!isSelectionMode) setReactionMenuId(message._id)
+                      }}
+                    >
+                      {/* Avatar on the Left for Group Chats - Only on first message of group */}
+                      {showAvatar && (
+                        <div className="flex-shrink-0 self-start" style={{ visibility: isFirstOfGroup ? 'visible' : 'hidden' }}>
+                          <MessageAvatar user={message.senderId} />
                         </div>
                       )}
 
-                      {message.text && (
-                        <div className="px-[9px] pt-[6px] pb-[8px]">
-                          <p className="text-[14.2px] leading-[19px] whitespace-pre-wrap break-words text-[#0f172a]">{message.text}</p>
+                      {/* Selection Checkbox */}
+                      {isSelectionMode && (
+                        <div className="flex items-center mr-[12px] self-center">
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected} 
+                            onChange={() => handleToggleSelect(message._id)}
+                            className="w-[18px] h-[18px] accent-wa-primary cursor-pointer"
+                          />
                         </div>
                       )}
-                      <div className={`flex items-center justify-end gap-[3px] pr-[8px] pb-[5px] ${message.text ? '-mt-[2px]' : 'px-[8px]'}`}>
-                        {message.edited && (
-                          <span className="text-[10px] text-[#94a3b8] italic mr-[2px]">edited</span>
-                        )}
-                        <span className="text-[11px] text-[#64748b] leading-[15px]">{formatMessageTime(message.createdAt)}</span>
-                        {isOwn && (
-                          <svg viewBox="0 0 16 11" width="16" height="11" fill={isRead ? '#3b82f6' : '#8696a0'} className="ml-[1px]">
-                            <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.011-2.095a.463.463 0 0 0-.336-.153.457.457 0 0 0-.345.14l-.576.61a.515.515 0 0 0-.148.354c0 .134.057.262.157.357l2.96 2.87a.476.476 0 0 0 .329.141h.015a.472.472 0 0 0 .333-.156l7.186-8.76a.487.487 0 0 0 .108-.37.478.478 0 0 0-.198-.327l-.567-.465zM14.757.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.382.178l-6.19 7.636-.436-.454.612-.751 6.19-7.636a.493.493 0 0 0 .108-.37.478.478 0 0 0-.198-.327l-.567-.465z" />
-                          </svg>
-                        )}
+
+                      {/* Message Content Container */}
+                      <div className={`flex items-start gap-2 max-w-[75%] min-w-[65px] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                        {/* The Bubble */}
+                        <div 
+                          className={`relative glass-panel-bubble rounded-[16px] ${showTail ? (isOwn ? 'msg-out-tail rounded-tr-none' : 'msg-in-tail rounded-tl-none') : ''} ${isOwn ? 'bg-wa-bg-msg-out text-white' : 'bg-white text-wa-text-primary'}`}
+                          style={{ 
+                            padding: '6px 12px 8px 12px',
+                            boxShadow: '0 1px 1.5px rgba(0,0,0,0.12)'
+                          }}
+                          onClick={() => isSelectionMode && handleToggleSelect(message._id)}
+                        >
+                          {/* Reaction Picker Popover */}
+                          {reactionMenuId === message._id && (
+                            <div className={`absolute -top-[52px] ${isOwn ? 'right-0' : 'left-0'} z-50 reaction-picker-panel p-1.5 rounded-full flex items-center gap-1 animate-in zoom-in-95 duration-200 origin-bottom shadow-2xl border border-white/50`}>
+                              {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+                                <button 
+                                  key={emoji} 
+                                  onClick={() => handleToggleReaction(message._id, emoji)}
+                                  className="reaction-emoji-btn w-9 h-9 flex items-center justify-center text-[22px] rounded-full"
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                              <div className="w-[1px] h-6 bg-slate-200/50 mx-1" />
+                              <button className="w-9 h-9 flex items-center justify-center rounded-full text-slate-400 hover:text-wa-primary">
+                                <Plus size={20} />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Sender Name (In group chats, first of group only) */}
+                          {!isOwn && selectedConversation.isGroup && isFirstOfGroup && (
+                            <div className="pt-0.5 pb-0.5">
+                              <span className="text-[12.5px] font-bold text-wa-primary tracking-wide">
+                                {getSenderName(message.senderId)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Message Body */}
+                          {message.deletedAt ? (
+                            <div className="py-1 flex items-center gap-2 text-slate-400 italic text-[14px]">
+                              <span>🚫</span>
+                              This message was deleted
+                            </div>
+                          ) : (
+                            <div className="relative bubble-text-wrap">
+                              {message.text && (
+                                <p className="text-[15px] leading-[1.4] whitespace-pre-wrap font-medium">
+                                  {message.text}
+                                  {/* Invisible spacer to reserve room for timestamp */}
+                                  <span className="inline-block w-[65px] h-[10px]"></span>
+                                </p>
+                              )}
+                              
+                              {/* Integrated Time & Status (Absolute Bottom Right) */}
+                              <div className={`absolute bottom-[-1px] right-[-6px] flex items-center gap-0.5 opacity-70`}>
+                                <span className="text-[10px] uppercase font-bold tracking-tighter">
+                                  {formatMessageTime(message.createdAt)}
+                                </span>
+                                {isOwn && (
+                                  <svg viewBox="0 0 16 11" width="13" height="10" fill="currentColor">
+                                    <path d="M11.071.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.381.178l-6.19 7.636-2.011-2.095a.463.463 0 0 0-.336-.153.457.457 0 0 0-.345.14 l-.576.61a.515.515 0 0 0-.148.354c0 .134.057.262.157.357l2.96 2.87a.476.476 0 0 0 .329.141h.015a.472.472 0 0 0 .333-.156l7.186-8.76a.487.487 0 0 0 .108-.37.478.478 0 0 0-.198-.327l-.567-.465zM14.757.653a.457.457 0 0 0-.304-.102.493.493 0 0 0-.382.178l-6.19 7.636-.436-.454.612-.751 6.19-7.636a.493.493 0 0 0 .108-.37.478.478 0 0 0-.198-.327l-.567-.465z" />
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Float-below Reactions */}
+                          {message.reactions && message.reactions.length > 0 && (
+                            <div className={`absolute -bottom-[10px] ${isOwn ? 'right-1' : 'left-1'} flex items-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm border border-slate-100 px-1 py-0.5 gap-0.5 scale-90`}>
+                              {Array.from(new Set(message.reactions.map(r => r.emoji))).slice(0, 3).map(emoji => (
+                                <span key={emoji} className="text-[12px]">{emoji}</span>
+                              ))}
+                              {message.reactions.length > 1 && (
+                                <span className="text-[9px] font-black text-slate-500 ml-0.5">{message.reactions.length}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hover Quick Reaction Trigger */}
+                        <button 
+                          onClick={() => setReactionMenuId(message._id)}
+                          className="reaction-btn-trigger w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-wa-primary hover:bg-wa-primary/5 transition-all bg-white shadow-sm border border-slate-100 mt-1"
+                        >
+                          <Smile size={18} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -438,17 +772,28 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
         </div>
       </div>
 
+      {activeCall && (
+        <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-300">
+           <StreamTheme>
+             <StreamCall call={activeCall}>
+               <SpeakerLayout />
+               <CallControls onLeave={() => setActiveCall(null)} />
+             </StreamCall>
+           </StreamTheme>
+        </div>
+      )}
+
       {/* Hidden file inputs */}
       <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" onChange={(e) => handleFileUpload(e, 'document')} />
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
       {/* Message Input Area */}
-      <div className="bg-[#eff6ff] border-t border-[#dbeafe] flex items-center px-[14px] py-[10px] gap-[8px] flex-shrink-0">
+      <div className="glass-panel flex items-center px-[14px] py-[10px] gap-[8px] flex-shrink-0 m-2 mt-0 rounded-xl">
         {/* Plus / Attach with popup */}
         <div className="relative" ref={attachRef}>
           <button
             onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className={`w-[42px] h-[42px] flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0 ${showAttachMenu ? 'bg-[#dbeafe] rotate-[135deg]' : 'hover:bg-[#dbeafe] rotate-0'}`}
+            className={`w-[42px] h-[42px] flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0 ${showAttachMenu ? 'bg-wa-bg-hover rotate-[135deg]' : 'hover:bg-wa-bg-hover rotate-0'}`}
             title="Attach"
           >
             <svg viewBox="0 0 24 24" width="24" height="24" fill="#64748b">
@@ -456,18 +801,18 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
             </svg>
           </button>
           {showAttachMenu && (
-            <div className="absolute bottom-[52px] left-0 bg-[#ffffff] rounded-[12px] shadow-[0_8px_24px_rgba(15,23,42,0.12)] p-[12px] z-50 w-[200px]">
+            <div className="absolute bottom-[52px] left-0 bg-white rounded-[12px] shadow-[0_8px_24px_rgba(15,23,42,0.12)] p-[12px] z-50 w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-150">
               <div className="flex flex-col gap-[4px]">
                 {attachOptions.map((opt, i) => (
                   <button
                     key={i}
                     onClick={() => handleAttachOptionClick(opt.type as AttachOptionType)}
-                    className="flex items-center gap-[14px] px-[12px] py-[10px] rounded-[8px] hover:bg-[#dbeafe] transition-colors group"
+                    className="flex items-center gap-[14px] px-[12px] py-[10px] rounded-[8px] hover:bg-wa-bg-hover transition-colors group"
                   >
                     <div className="w-[40px] h-[40px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: opt.color }}>
                       {opt.icon}
                     </div>
-                    <span className="text-[#0f172a] text-[14px]">{opt.label}</span>
+                    <span className="text-wa-text-primary text-[14px]">{opt.label}</span>
                   </button>
                 ))}
               </div>
@@ -476,34 +821,27 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
         </div>
 
         {/* Input container */}
-        <div className="flex-1 flex items-center bg-[#ffffff] border border-[#dbeafe] rounded-[20px] min-h-[48px] px-[12px]">
+        <div className="flex-1 flex items-center bg-white rounded-[12px] min-h-[44px] px-[12px] shadow-sm">
           {/* Emoji */}
           <div className="relative">
             <button
-              className="w-[44px] h-[44px] flex items-center justify-center flex-shrink-0"
+              className="w-[40px] h-[40px] flex items-center justify-center flex-shrink-0"
               title="Emoji"
-              onMouseEnter={() => setShowEmojiHint(true)}
-              onMouseLeave={() => setShowEmojiHint(false)}
               onClick={() => setMessageInput(prev => prev + '😊')}
             >
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="#64748b">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-wa-text-muted)">
                 <path d="M9.153 11.603c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zm5.694 0c.795 0 1.439-.879 1.439-1.962s-.644-1.962-1.439-1.962-1.439.879-1.439 1.962.644 1.962 1.439 1.962zM12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm4.667-5.677A5.32 5.32 0 0 1 12 17.242a5.32 5.32 0 0 1-4.667-2.919.5.5 0 0 1 .878-.478 4.326 4.326 0 0 0 3.789 2.397 4.326 4.326 0 0 0 3.789-2.397.5.5 0 0 1 .878.478z" />
               </svg>
             </button>
-            {showEmojiHint && (
-              <div className="absolute bottom-[48px] left-1/2 -translate-x-1/2 bg-[#e2e8f0] text-[#0f172a] text-[12px] px-[8px] py-[4px] rounded whitespace-nowrap shadow-lg">
-                Click to add emoji
-              </div>
-            )}
           </div>
 
           {/* Text Input */}
           <textarea
             value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message"
-            className="flex-1 bg-transparent text-[#0f172a] text-[15px] py-[12px] pr-[12px] focus:outline-none placeholder-[#94a3b8] resize-none max-h-[120px] leading-[20px]"
+            className="flex-1 bg-transparent text-wa-text-primary text-[15.5px] py-[10px] focus:outline-none placeholder-wa-text-muted resize-none max-h-[120px] leading-[22px]"
             rows={1}
           />
         </div>
@@ -512,16 +850,17 @@ export default function ChatWindow({ selectedConversation, currentUserId, curren
         <button
           onClick={messageInput.trim() ? handleSendMessage : undefined}
           disabled={sendingMessage}
-          className={`w-[42px] h-[42px] flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0 hover:bg-[#dbeafe] ${sendingMessage ? 'opacity-50' : ''}`}
+          className={`w-[42px] h-[42px] flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0 ${messageInput.trim() ? '' : 'hover:bg-wa-bg-hover'} ${sendingMessage ? 'opacity-50' : ''}`}
           title={messageInput.trim() ? 'Send message' : 'Voice message'}
         >
           {messageInput.trim() ? (
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#00a884">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-wa-primary)">
               <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z" />
             </svg>
           ) : (
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#64748b">
-              <path d="M11.999 14.942c2.001 0 3.531-1.53 3.531-3.531V4.35c0-2.001-1.53-3.531-3.531-3.531S8.469 2.35 8.469 4.35v7.061c0 2.001 1.53 3.531 3.53 3.531zm6.238-3.531c0 3.531-2.942 6.002-6.238 6.002s-6.238-2.471-6.238-6.002H4.761c0 3.885 3.118 7.06 6.938 7.53v3.707h2.6v-3.707c3.82-.47 6.938-3.645 6.938-7.53h-1.999v-.001h-2.001z" />
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--color-wa-text-muted)">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
             </svg>
           )}
         </button>

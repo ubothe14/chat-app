@@ -75,20 +75,20 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
 
   function handleSignup(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !email.trim() || !phone.trim() || !experience.trim() || !targetExam.trim() || !password.trim() || !idDocumentName.trim()) {
-      setError('Please complete all signup fields and upload your ID document.');
+    if (!name.trim() || !email.trim() || !phone.trim() || !experience.trim() || !targetExam.trim() || !password.trim()) {
+      setError('Please complete all mandatory signup fields.');
       return
     }
     setError('');
     onSignup({
       name: name.trim(),
-      email: email.trim(),
+      email: email.toLowerCase().trim(),
       phone: phone.trim(),
       experience: experience.trim(),
       targetExam: targetExam.trim(),
       password: password.trim(),
-      idDocumentName: idDocumentName.trim(),
-      verificationStatus: 'pending',
+      idDocumentName: idDocumentName.trim() || undefined,
+      verificationStatus: idDocumentName.trim() ? 'pending' : 'unverified',
     })
   }
 
@@ -109,7 +109,7 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
     fontSize: '12px', fontWeight: 700, color: '#fff',
     cursor: 'pointer', fontFamily: 'inherit',
     boxShadow: '0 6px 22px rgba(41,121,255,0.30)',
-    transition: 'all 0.18s ease', marginTop: '0px',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)', marginTop: '0px',
   }
 
   return (
@@ -127,7 +127,7 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
       {/* position:fixed fills the entire viewport regardless of parent layout */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: '#e8eaf6',
+        background: 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '24px',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -137,7 +137,11 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
           display: 'flex', width: '100%', maxWidth: '750px',
           borderRadius: '24px',
           overflow: 'hidden',
-          boxShadow: '0 24px 72px rgba(15,23,42,0.16)',
+          background: 'rgba(255, 255, 255, 0.75)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255, 255, 255, 0.8)',
+          boxShadow: '0 24px 72px rgba(15,116,255,0.12)',
         }}>
 
           {/* ══ LEFT BLUE PANEL ══ */}
@@ -186,7 +190,7 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
 
           {/* ══ RIGHT WHITE PANEL ══ */}
           <div style={{
-            flex: 1, background: '#fff',
+            flex: 1, background: 'transparent',
             padding: '24px 32px',
             display: 'flex', flexDirection: 'column', justifyContent: 'center',
             overflowY: 'auto',

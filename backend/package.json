@@ -17,6 +17,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@stream-io/node-sdk": "^0.7.52",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -24,7 +25,8 @@
     "google-auth-library": "^10.6.2",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.0",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.20"
