@@ -12,6 +12,7 @@ interface SidebarProps {
   user?: User | null
   onUserUpdate?: (updatedUser: User) => void
   isMobile?: boolean
+  onTabChange?: (tab: string) => void
 }
 
 function SectionHeader({ title, children, isMobile, user, onAvatarClick }: { title: string; children?: React.ReactNode, isMobile?: boolean, user?: User | null, onAvatarClick?: () => void }) {
@@ -69,7 +70,7 @@ function formatTimestamp(dateStr: string | null | undefined): string {
   }
 }
 
-export default function Sidebar({ conversations, selectedConversation, onSelectConversation, onConversationCreated, currentUserId, activeTab = 'chats', user, onUserUpdate, isMobile }: SidebarProps) {
+export default function Sidebar({ conversations, selectedConversation, onSelectConversation, onConversationCreated, currentUserId, activeTab = 'chats', user, onUserUpdate, isMobile, onTabChange }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [searchFocused, setSearchFocused] = useState(false)
@@ -301,7 +302,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
           title="Socialize" 
           isMobile={isMobile} 
           user={user} 
-          onAvatarClick={() => { /* This should show profile */ }}
+          onAvatarClick={() => onTabChange?.('profile')}
         >
           <button onClick={openNewChat} className={`flex items-center justify-center rounded-full hover:bg-wa-bg-hover transition-all duration-200 ${isMobile ? 'w-[36px] h-[36px]' : 'w-[40px] h-[40px]'}`} title="New chat">
             <svg viewBox="0 0 24 24" width={isMobile ? 20 : 22} height={isMobile ? 20 : 22}><path fill="#54656f" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM13 11h-2v2H9v-2H7V9h2V7h2v2h2v2z" /></svg>
@@ -365,9 +366,9 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
 
   const renderProfilePane = () => {
     return (
-      <div className={`absolute inset-0 z-50 flex flex-col h-full bg-wa-separator overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'profile' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
-          <div className="h-[60px] bg-wa-primary text-white px-[20px] flex items-center gap-[24px] flex-shrink-0">
-            <button className="transition-transform hover:-translate-x-1" onClick={() => window.dispatchEvent(new CustomEvent('nav-chats'))}>
+      <div className={`absolute inset-0 z-50 flex flex-col h-full bg-white overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'profile' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+          <div className="h-[60px] bg-wa-primary text-white border-b border-wa-separator/10 px-[20px] flex items-center gap-[24px] flex-shrink-0">
+            <button className="transition-transform hover:-translate-x-1" onClick={() => onTabChange?.('chats')}>
                 <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
             </button>
             <h1 className="text-[19px] font-bold">Profile</h1>

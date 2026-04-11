@@ -434,6 +434,7 @@ function App() {
               user={registeredUser} 
               onUserUpdate={handleProfileUpdate} 
               isMobile={isMobile}
+              onTabChange={handleTabChange}
             />
           </div>
         </div>
