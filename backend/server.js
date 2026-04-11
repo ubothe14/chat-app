@@ -13,22 +13,32 @@ import chatRoutes from './routes/chat.js'
 import videoRoutes from './routes/video.js'
 
 const app = express()
+
+// ─── EXTREME CORS FIX: SET HEADERS AT THE ABSOLUTE TOP ───
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.endsWith('.onrender.com') || origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin); // Reflect anyway for debugging
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+
+  // Handle manual preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
-    origin: (origin, callback) => {
-      const allowedOrigins = [
-        process.env.FRONTEND_URL || 'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:4173',
-        'http://127.0.0.1:4173',
-      ]
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error(`CORS origin not allowed: ${origin}`))
-      }
-    },
+    origin: true,
     credentials: true,
   }
 })
@@ -39,26 +49,7 @@ const __dirname = path.dirname(__filename)
 const PORT = process.env.PORT || 5000
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/chat-app'
 
-// Middleware
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://localhost:4173',
-  'http://127.0.0.1:4173',
-].filter(Boolean).map(o => o.replace(/\/$/, '')) // Remove trailing slashes
-
-// Security & Header configuration
-app.use((req, res, next) => {
-  // Required for Google Sign-In communication between popup and opener
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  next();
-});
-
-app.use(cors({
-  origin: true, // Reflect request origin - resolves any URL/domain mismatch issues on Render
-  credentials: true,
-}))
+// Note: Manual CORS is handled at the very top of this file
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
