@@ -388,7 +388,7 @@ function App() {
       )}
       
       {/* Selection flow for mobile: Sidebar list vs Chat window */}
-      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:flex-none overflow-hidden`}>
+      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:w-[476px] md:min-w-[476px] md:flex-none overflow-hidden`}>
         {!isMobile && (
           <SidebarNav 
             activeTab={activeNavTab} 
@@ -414,7 +414,7 @@ function App() {
         </div>
       </div>
 
-      <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative ${isMobile && !showChatOnMobile ? 'hidden' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden ${isMobile && !showChatOnMobile ? 'hidden' : 'flex'}`}>
         {activeNavTab === 'admin' ? (
           <div className="flex-1 h-full overflow-hidden">
             <AdminPanel />
