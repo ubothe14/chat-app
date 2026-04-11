@@ -221,9 +221,13 @@ io.on('connection', (socket) => {
 })
 
 httpServer.listen(PORT, () => {
-  console.log(`\n✅ Server running on http://localhost:${PORT}`)
+  console.log(`\n✅ Server running on port ${PORT}`)
   console.log(`📦 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔗 MongoDB: ${MONGODB_URI}\n`)
+  
+  const dbUri = process.env.MONGODB_URI || ''
+  const maskedUri = dbUri.replace(/\/\/.*@/, '//****:****@')
+  console.log(`🔗 MongoDB URI: ${maskedUri ? maskedUri : 'MISSING'}`)
+  console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'NOT SET'}\n`)
 })
 
 export default app

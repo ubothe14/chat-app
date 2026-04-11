@@ -126,7 +126,10 @@ router.post('/login', async (req, res) => {
 router.post('/google-signin', async (req, res) => {
   try {
     const { idToken } = req.body
-    console.log(`📡 [Auth] Google Sign-In request received. Token present: ${!!idToken}`)
+    const dbState = mongoose.connection.readyState
+    const dbStatus = ['disconnected', 'connected', 'connecting', 'disconnecting'][dbState] || 'unknown'
+    
+    console.log(`📡 [Auth] Request received. DB: ${dbStatus} (${dbState}). Token present: ${!!idToken}`)
 
     if (!idToken) {
       console.error('❌ Google Sign-In failed: No ID Token provided')
@@ -135,73 +138,62 @@ router.post('/google-signin', async (req, res) => {
 
     const clientId = process.env.GOOGLE_CLIENT_ID
     if (!clientId) {
-      console.error('❌ Google Sign-In failed: GOOGLE_CLIENT_ID not found in environment')
+      console.error('❌ Google Sign-In failed: GOOGLE_CLIENT_ID missing')
       return res.status(500).json({ error: 'Server configuration error: GOOGLE_CLIENT_ID missing' })
     }
 
-    // Initialize or verify client inside the handler to ensure env is ready
     const googleClient = new OAuth2Client(clientId)
-
-    // Verify Google ID Token
+    
+    console.log('⏳ [Auth] Step 1: Verifying Google Token...')
     let ticket;
     try {
       ticket = await googleClient.verifyIdToken({
         idToken,
         audience: clientId,
       })
+      console.log('✅ [Auth] Step 1 Complete: Token Verified.')
     } catch (verifyError) {
-      console.error('❌ Google Token Verification Error:', verifyError.message)
+      console.error('❌ [Auth] Google Token Verification Error:', verifyError.message)
       return res.status(401).json({ 
         error: 'Google authentication failed', 
-        message: verifyError.message,
-        details: 'The token provided might be invalid, expired, or have an incorrect audience.'
+        message: verifyError.message
       })
     }
 
     const payload = ticket.getPayload()
     const { email, name, picture, sub: googleId } = payload
+    console.log(`⏳ [Auth] Step 2: Database lookup for ${email}...`)
 
-    if (!email) {
-      return res.status(400).json({ error: 'Google account must have an email' })
-    }
-
-    // Check if user exists
     let user = await User.findOne({ email: email.toLowerCase() })
+    console.log(`✅ [Auth] Step 2 Complete: User ${user ? 'found' : 'not found'}.`)
 
-    // If user doesn't exist, create one
     if (!user) {
-      console.log(`🆕 Creating new user from Google: ${email}`)
+      console.log(`🆕 [Auth] Step 3: Creating new user...`)
       user = new User({
         name: name || 'Google User',
         email: email.toLowerCase().trim(),
-        phone: '',
-        experience: '',
-        targetExam: 'All',
-        verificationStatus: 'unverified',
         googleAuth: true,
-        googleId: googleId,
+        googleId,
         avatar: picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
       })
       await user.save()
-    } else {
-      // Update googleId if not present (in case of transition from manual to google)
-      if (!user.googleAuth) {
-        console.log(`🔗 Linking existing account to Google: ${email}`)
-        user.googleAuth = true
-        user.googleId = googleId
-        if (!user.avatar) user.avatar = picture
-        await user.save()
-      }
+      console.log('✅ [Auth] Step 3 Complete: User saved.')
+    } else if (!user.googleAuth) {
+      console.log(`🔗 [Auth] Step 3: Linking manual account to Google...`)
+      user.googleAuth = true
+      user.googleId = googleId
+      if (!user.avatar) user.avatar = picture
+      await user.save()
+      console.log('✅ [Auth] Step 3 Complete: Account linked.')
     }
 
     // Update last login
     user.lastLogin = new Date()
     await user.save()
 
-    // Generate token
     const token = generateToken(user._id, user.email)
-
-    console.log(`✅ Google sign-in successful for: ${email}`)
+    console.log(`🎉 [Auth] SUCCESS: Sign-in complete for ${email}`)
+    
     res.status(200).json({
       message: 'Google sign-in successful',
       token,
@@ -209,10 +201,6 @@ router.post('/google-signin', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone || '',
-        experience: user.experience || '',
-        targetExam: user.targetExam || 'All',
-        verificationStatus: user.verificationStatus,
         avatar: user.avatar,
         role: user.role,
       },
