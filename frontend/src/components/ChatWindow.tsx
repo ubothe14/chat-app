@@ -521,7 +521,7 @@ export default function ChatWindow({
   const headerAvatar = selectedConversation.isGroup ? selectedConversation.groupIcon : otherParticipant?.avatar
 
   return (
-    <div className="flex-1 flex flex-col bg-wa-bg-chat h-full relative chat-bg-pattern overflow-hidden">
+    <div className="flex-1 flex flex-col bg-wa-bg-chat h-full relative chat-bg-pattern overflow-hidden min-h-0">
       {/* Header */}
       <div className={`${isMobile ? 'h-[52px] px-[12px]' : 'h-[60px] px-[16px]'} bg-wa-bg-panel/90 backdrop-blur-xl border-b border-wa-separator flex items-center justify-between flex-shrink-0 z-20`}>
         <div className="flex items-center gap-[10px] md:gap-[15px] cursor-pointer min-w-0" onClick={() => setShowChatMenu(!showChatMenu)}>
@@ -623,7 +623,7 @@ export default function ChatWindow({
       {/* Messages */}
       <div 
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto chat-pattern-bg shadow-inner"
+        className="flex-1 overflow-y-auto chat-pattern-bg shadow-inner min-h-0"
         style={{ padding: '16px 12px 20px 12px' }} // T: 16, H: 12, B: 20
       >
         <div className="w-full py-[12px]">
@@ -811,7 +811,7 @@ export default function ChatWindow({
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
       {/* Message Input Area */}
-      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 px-[8px] py-[6px]' : 'm-2 px-[14px] py-[10px]'}`}>
+      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 mb-2 px-[8px] py-[6px]' : 'm-2 px-[14px] py-[10px]'}`}>
         {/* Plus / Attach with popup */}
         <div className="relative" ref={attachRef}>
           <button

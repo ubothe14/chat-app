@@ -377,7 +377,7 @@ function App() {
   }
 
   const MainLayout = (
-    <div className="flex h-full bg-transparent overflow-hidden">
+    <div className="flex h-screen bg-transparent overflow-hidden">
       {isAuthenticated && registeredUser && !registeredUser.phone && (
         <CompleteProfileModal
           userId={currentUserId || ''}
@@ -388,7 +388,7 @@ function App() {
       )}
       
       {/* Selection flow for mobile: Sidebar list vs Chat window */}
-      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full flex-grow overflow-hidden`}>
+      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:flex-none overflow-hidden`}>
         {!isMobile && (
           <SidebarNav 
             activeTab={activeNavTab} 
