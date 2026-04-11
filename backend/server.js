@@ -64,7 +64,10 @@ app.use(cors({
     const cleanOrigin = origin.replace(/\/$/, '');
     const isAllowed = allowedOrigins.some(o => o.toLowerCase() === cleanOrigin.toLowerCase());
     
-    if (isAllowed) {
+    // Automatically allow any Render domain in production
+    const isRenderDomain = cleanOrigin.toLowerCase().endsWith('.onrender.com');
+    
+    if (isAllowed || isRenderDomain) {
       callback(null, true);
     } else {
       console.warn(`[CORS] Blocked origin: ${origin}`);
