@@ -895,7 +895,8 @@ export default function ChatWindow({
                   </button>
                 ))}
               </div>
-        </div>
+            )}
+          </div>
 
         {/* Input container */}
         <div className="flex-1 flex items-center bg-white rounded-[12px] min-h-[44px] px-[12px] shadow-sm">
