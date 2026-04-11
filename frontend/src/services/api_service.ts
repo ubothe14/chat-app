@@ -23,6 +23,7 @@ export interface User {
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
   role?: 'user' | 'admin'
   experience?: string
+  bio?: string
   targetExam?: string
   isActive?: boolean
   createdAt?: string
@@ -53,6 +54,8 @@ export interface Conversation {
   isGroup: boolean
   groupName: string | null
   groupIcon: string | null
+  status?: 'pending' | 'accepted' | 'rejected'
+  createdBy?: string
   createdAt: string
 }
 

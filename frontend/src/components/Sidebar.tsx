@@ -76,10 +76,8 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const [searchFocused, setSearchFocused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [showNewChat, setShowNewChat] = useState(false)
-  const [allUsers, setAllUsers] = useState<User[]>([])
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [newChatSearch, setNewChatSearch] = useState('')
-  const [loadingUsers, setLoadingUsers] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [tempName, setTempName] = useState('')
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set())
@@ -178,8 +176,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const fetchDiscoveryUsers = async () => {
     setLoadingDiscovery(true)
     try {
-      const response = await userAPI.getAllUsers() // We'll update api_service to use the new discover route if possible
-      // Actually let's assume getAllUsers is updated or use a custom fetch here
+      // Actually let's use the custom discover route
       const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/users/discover`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

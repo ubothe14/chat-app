@@ -412,7 +412,7 @@ function App() {
         )}
         
         {/* Validation Gateway */}
-        {registeredUser.verificationStatus !== 'verified' ? (
+        {(!registeredUser || registeredUser.verificationStatus !== 'verified') ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-white/40 backdrop-blur-md p-8 text-center">
             <div className="w-[120px] h-[120px] bg-wa-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
               <svg viewBox="0 0 24 24" width="60" height="60" className="text-wa-primary"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-1v-1h1v1zm1-3h-2v-5h2v5z"/></svg>
@@ -422,7 +422,9 @@ function App() {
               To browse other users and start chatting, your profile must be manually verified. Please ensure you have uploaded a valid Govt ID in your profile settings.
             </p>
             <div className="bg-wa-primary/5 px-6 py-4 rounded-2xl border border-wa-primary/10">
-              <span className="text-wa-primary font-bold uppercase tracking-wider text-[12px]">Current Status: {registeredUser.verificationStatus.toUpperCase()}</span>
+              <span className="text-wa-primary font-bold uppercase tracking-wider text-[12px]">
+                Current Status: {registeredUser?.verificationStatus?.toUpperCase() || 'UNKNOWN'}
+              </span>
             </div>
           </div>
         ) : (
