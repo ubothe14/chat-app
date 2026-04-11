@@ -1,6 +1,8 @@
 import express from 'express'
 import multer from 'multer'
 import User from '../models/User.js'
+import Visit from '../models/Visit.js'
+import Notification from '../models/Notification.js'
 import { verifyToken, isAdmin } from '../middleware/auth.js'
 
 // Configure Multer for local storage
@@ -278,25 +280,38 @@ router.get('/admin/dashboard-stats', verifyToken, isAdmin, async (req, res) => {
     const Conversation = (await import('../models/Conversation.js')).default;
     const Message = (await import('../models/Message.js')).default;
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const totalUsers = await User.countDocuments();
+    const registrationsToday = await User.countDocuments({ createdAt: { $gte: today } });
+    const totalHits = await Visit.countDocuments();
+    const hitsToday = await Visit.countDocuments({ createdAt: { $gte: today } });
+    
     const activeUsers = await User.countDocuments({ 
         lastLogin: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
     });
+    
     const totalMessages = await Message.countDocuments();
     const totalGroups = await Conversation.countDocuments({ isGroup: true });
+    
     const pendingVerifications = await User.countDocuments({ verificationStatus: 'pending' });
     const verifiedUsers = await User.countDocuments({ verificationStatus: 'verified' });
-    const unverifiedUsers = await User.countDocuments({ verificationStatus: 'unverified' });
+    const rejectedUsers = await User.countDocuments({ verificationStatus: 'rejected' });
+    
     const userWithDocs = await User.countDocuments({ idDocumentPath: { $ne: null } });
 
     res.json({
       totalUsers,
+      registrationsToday,
+      totalHits,
+      hitsToday,
       activeUsers,
       totalMessages,
       totalGroups,
       pendingVerifications,
       verifiedUsers,
-      unverifiedUsers,
+      rejectedUsers,
       userWithDocs,
       serverUptime: process.uptime(),
       memoryUsage: process.memoryUsage().heapUsed
@@ -343,26 +358,26 @@ router.get('/admin/timeseries-stats', verifyToken, isAdmin, async (req, res) => 
 // Admin: Broadcast message to all users
 router.post('/admin/broadcast', verifyToken, isAdmin, async (req, res) => {
   try {
-    const { text } = req.body;
-    const Conversation = (await import('../models/Conversation.js')).default;
-    const Message = (await import('../models/Message.js')).default;
+    const { text, title } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'Broadcast text is required' });
     }
 
-    // Find all users (excluding the sender)
-    const users = await User.find({ _id: { $ne: req.userId }, isActive: true });
+    const notification = new Notification({
+      type: 'broadcast',
+      title: title || 'Global Announcement',
+      message: text,
+      senderId: req.userId
+    });
+
+    await notification.save();
     
-    // In a production app, we'd use a background queue or a distinct "Socialize Official" channel
-    // For this implementation, we will mock the broadcast by creating a "System Message" context
-    // or simply logging it. Real broadcast logic depends on scalability needs.
-    
-    console.log(`[Admin Broadcast] From: ${req.userEmail} Content: ${text}`);
+    console.log(`[Admin Broadcast] From: ${req.userId} Content: ${text}`);
 
     res.json({ 
-      message: `Broadcast initiated to ${users.length} users.`,
-      recipientCount: users.length 
+      message: `Broadcast sent precisely to all network nodes.`,
+      notification 
     });
   } catch (error) {
     res.status(500).json({ error: 'Broadcast failed', message: error.message });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck, Image as ImageIcon, CheckCircle, XCircle, FileSearch, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { userAPI, type User } from '../../services/api_service';
+import { userAPI, getFullImageUrl, type User } from '../../services/api_service';
 
 export default function AdminKYC() {
   const [pendingUsers, setPendingUsers] = useState<User[]>([]);
@@ -80,7 +80,7 @@ export default function AdminKYC() {
               >
                 <div className="flex items-start gap-5 relative z-10">
                   <div className="w-16 h-16 rounded-3xl overflow-hidden flex-shrink-0 bg-wa-bg-input shadow-inner border border-wa-separator">
-                    {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted"><FileSearch size={32} /></div>}
+                    {user.avatar ? <img src={getFullImageUrl(user.avatar) || ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted"><FileSearch size={32} /></div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -92,9 +92,7 @@ export default function AdminKYC() {
                     <div className="flex gap-3">
                       <button 
                         onClick={() => {
-                          const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5006';
-                          const normalizedPath = user.idDocumentPath?.replace(/\\/g, '/');
-                          const path = user.idDocumentPath?.startsWith('http') ? user.idDocumentPath : `${baseUrl}/${normalizedPath}`;
+                          const path = getFullImageUrl(user.idDocumentPath);
                           setPreviewImage(path);
                         }}
                         className="flex-1 py-3 bg-wa-bg-input hover:bg-wa-primary hover:text-white rounded-[16px] text-[13px] font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-sm"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid } from 'recharts';
-import { Users, MessageSquare, ShieldCheck, Activity, Database, Cpu, TrendingUp } from 'lucide-react';
+import { ShieldCheck, Activity, Database, Cpu, TrendingUp, MousePointer2, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { userAPI } from '../../services/api_service';
 
@@ -67,20 +67,21 @@ export default function AdminOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div variants={item}>
           <StatCard 
-            label="Total Network" 
-            value={stats?.totalUsers} 
-            icon={<Users className="text-wa-primary" size={22} />} 
-            trend="+12%" 
-            sub="Joined recently"
+            label="Total Traversal" 
+            value={stats?.totalHits} 
+            icon={<MousePointer2 className="text-wa-primary" size={22} />} 
+            trend={`Today: ${stats?.hitsToday}`}
+            sub="Lifetime network hits"
           />
         </motion.div>
         <motion.div variants={item}>
           <StatCard 
-            label="Active Nodes" 
-            value={stats?.activeUsers} 
-            icon={<Activity className="text-blue-500" size={22} />} 
+            label="Registry Growth" 
+            value={stats?.totalUsers} 
+            icon={<UserPlus className="text-blue-500" size={22} />} 
             color="text-blue-600"
-            sub="Online currently"
+            trend={`New: ${stats?.registrationsToday}`}
+            sub="Total user database"
           />
         </motion.div>
         <motion.div variants={item}>
@@ -88,15 +89,16 @@ export default function AdminOverview() {
             label="Integrity Check" 
             value={`${stats?.verifiedUsers || 0}`} 
             icon={<ShieldCheck className="text-wa-primary" size={22} />} 
+            trend={`Rejected: ${stats?.rejectedUsers || 0}`}
             sub="Verified accounts"
           />
         </motion.div>
         <motion.div variants={item}>
           <StatCard 
-            label="Data Flow" 
-            value={stats?.totalMessages} 
-            icon={<MessageSquare className="text-purple-500" size={22} />} 
-            sub="Total messages sent"
+            label="Active Flux" 
+            value={stats?.activeUsers} 
+            icon={<Activity className="text-purple-500" size={22} />} 
+            sub="Users active (24h)"
           />
         </motion.div>
       </div>

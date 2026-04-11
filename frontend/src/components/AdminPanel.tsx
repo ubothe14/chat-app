@@ -1,5 +1,5 @@
 import { useState, lazy, Suspense } from 'react'
-import { LayoutDashboard, ShieldCheck, Megaphone, RefreshCw, Send, Users as UsersIcon } from 'lucide-react'
+import { LayoutDashboard, ShieldCheck, Megaphone, RefreshCw, Send, Users as UsersIcon, LifeBuoy } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { userAPI, chatAPI } from '../services/api_service'
 
@@ -7,23 +7,27 @@ import { userAPI, chatAPI } from '../services/api_service'
 const AdminOverview = lazy(() => import('./admin/AdminOverview'))
 const AdminKYC = lazy(() => import('./admin/AdminKYC'))
 const AdminUserManagement = lazy(() => import('./admin/AdminUserManagement'))
+const AdminQueries = lazy(() => import('./admin/AdminQueries'))
 
 export default function AdminPanel() {
-  const [adminTab, setAdminTab] = useState<'overview' | 'verify' | 'broadcast' | 'manage'>('overview')
+  const [adminTab, setAdminTab] = useState<'overview' | 'verify' | 'broadcast' | 'manage' | 'queries'>('overview')
   const [broadcastText, setBroadcastText] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [broadcastTitle, setBroadcastTitle] = useState('')
+  const [isBroadcasting, setIsBroadcasting] = useState(false)
 
   const handleBroadcast = async () => {
     if (!broadcastText.trim()) return
-    setLoading(true)
+    setIsBroadcasting(true)
     try {
-      const res = await userAPI.broadcastMessage(broadcastText)
-      console.log('Broadcast message sent:', res.message)
+      await userAPI.broadcastMessage(broadcastText, broadcastTitle)
       setBroadcastText('')
+      setBroadcastTitle('')
+      alert('Broadcast dispatched successfully to all network nodes.')
     } catch (err) {
       console.error('Broadcast failed:', err)
+      alert('Broadcast transmission failed. Check network logs.')
     } finally {
-      setLoading(false)
+      setIsBroadcasting(false)
     }
   }
 
@@ -81,6 +85,7 @@ export default function AdminPanel() {
           <NavTab active={adminTab === 'overview'} onClick={() => setAdminTab('overview')} label="Live Insights" icon={<LayoutDashboard size={20} />} />
           <NavTab active={adminTab === 'verify'} onClick={() => setAdminTab('verify')} label="Identity Gallery" icon={<ShieldCheck size={20} />} />
           <NavTab active={adminTab === 'manage'} onClick={() => setAdminTab('manage')} label="User Grid" icon={<UsersIcon size={20} />} />
+          <NavTab active={adminTab === 'queries'} onClick={() => setAdminTab('queries')} label="Queries" icon={<LifeBuoy size={20} />} />
           <NavTab active={adminTab === 'broadcast'} onClick={() => setAdminTab('broadcast')} label="Global Pulse" icon={<Megaphone size={20} />} />
           
           <div className="hidden md:block mt-auto p-4 bg-wa-primary/5 rounded-[24px] border border-wa-primary/10">
@@ -114,6 +119,7 @@ export default function AdminPanel() {
                 {adminTab === 'overview' && <AdminOverview />}
                 {adminTab === 'verify' && <AdminKYC />}
                 {adminTab === 'manage' && <AdminUserManagement onStartChat={startChatWithUser} />}
+                {adminTab === 'queries' && <AdminQueries />}
                 
                 {/* Broadcast Section */}
                 {adminTab === 'broadcast' && (
@@ -132,27 +138,36 @@ export default function AdminPanel() {
                         Live Protocol
                       </div>
                       
-                      <h3 className="text-[28px] md:text-[36px] font-black text-wa-text-primary tracking-tight mb-4 leading-tight">Internal Launch Protocol</h3>
+                      <h3 className="text-[28px] md:text-[36px] font-black text-wa-text-primary tracking-tight mb-4 leading-tight">Global Annunciation Terminal</h3>
                       <p className="text-[16px] text-wa-text-secondary max-w-2xl leading-relaxed mb-10 opacity-80">
                         Initiate a global announcement pulse across all active Socialize connections. 
-                        This action is irreversible and will appear instantly on all user interfaces.
+                        This action will be permanently logged in the global notification register.
                       </p>
                       
-                      <textarea 
-                        value={broadcastText}
-                        onChange={(e) => setBroadcastText(e.target.value)}
-                        placeholder="Type your transmission message here..."
-                        className="w-full h-56 p-8 bg-[#f8fbff] rounded-[32px] focus:outline-none focus:ring-4 focus:ring-wa-primary/10 text-[20px] font-medium resize-none transition-all border border-[#e2e8f0] focus:border-wa-primary/40 shadow-inner"
-                      />
+                      <div className="space-y-4">
+                        <input 
+                          type="text"
+                          placeholder="Transmission Title (e.g. System Maintenance)"
+                          className="w-full bg-[#f8fbff] px-8 py-4 rounded-[20px] border border-[#e2e8f0] focus:outline-none focus:ring-4 focus:ring-wa-primary/10 text-[15px] font-bold"
+                          value={broadcastTitle}
+                          onChange={(e) => setBroadcastTitle(e.target.value)}
+                        />
+                        <textarea 
+                          value={broadcastText}
+                          onChange={(e) => setBroadcastText(e.target.value)}
+                          placeholder="Type your transmission message here..."
+                          className="w-full h-56 p-8 bg-[#f8fbff] rounded-[32px] focus:outline-none focus:ring-4 focus:ring-wa-primary/10 text-[18px] font-medium resize-none transition-all border border-[#e2e8f0] focus:border-wa-primary/40 shadow-inner"
+                        />
+                      </div>
                       
                       <div className="mt-8 flex justify-end">
                         <button 
                           onClick={handleBroadcast}
-                          disabled={!broadcastText.trim() || loading}
+                          disabled={!broadcastText.trim() || isBroadcasting}
                           className="px-12 py-5 bg-wa-primary text-white rounded-[24px] font-black text-[18px] shadow-[0_20px_40px_rgba(0,128,105,0.25)] hover:shadow-[0_25px_50px_rgba(0,128,105,0.4)] disabled:opacity-50 transition-all flex items-center gap-4 active:scale-[0.96] group/btn"
                         >
-                          {loading ? <RefreshCw size={24} className="animate-spin" /> : <Send size={24} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />}
-                          {loading ? 'Transmitting Pulse...' : 'Activate Announcement'}
+                          {isBroadcasting ? <RefreshCw size={24} className="animate-spin" /> : <Send size={24} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />}
+                          {isBroadcasting ? 'Broadcasting...' : 'Activate Transmission'}
                         </button>
                       </div>
                     </div>

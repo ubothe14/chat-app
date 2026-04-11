@@ -59,6 +59,18 @@ export interface Conversation {
   createdAt: string
 }
 
+export interface SupportQuery {
+  _id?: string
+  userId: User | string
+  subject: string
+  message: string
+  status: 'open' | 'in-progress' | 'resolved'
+  adminReply?: string
+  repliedAt?: string
+  createdAt: string
+  updatedAt: string
+}
+
 interface ApiOptions extends RequestInit {
   headers?: Record<string, string>
   body?: any
@@ -191,12 +203,15 @@ export const userAPI = {
   getAdminDashboardStats: () =>
     apiCall<{
       totalUsers: number;
+      registrationsToday: number;
+      totalHits: number;
+      hitsToday: number;
       activeUsers: number;
       totalMessages: number;
       totalGroups: number;
       pendingVerifications: number;
       verifiedUsers: number;
-      unverifiedUsers: number;
+      rejectedUsers: number;
       userWithDocs: number;
       serverUptime: number;
       memoryUsage: number;
@@ -212,10 +227,10 @@ export const userAPI = {
       method: 'GET',
     }),
 
-  broadcastMessage: (text: string) =>
+  broadcastMessage: (text: string, title?: string) =>
     apiCall<{ message: string; recipientCount: number }>('/users/admin/broadcast', {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, title }),
     }),
 
   getAllUsersAdmin: (params: any = {}) =>
@@ -336,5 +351,29 @@ export const videoAPI = {
     apiCall<{ success: boolean; count: number }>('/video/sync-users', {
       method: 'POST',
       body: JSON.stringify({ userIds }),
+    }),
+}
+
+export const queryAPI = {
+  submitQuery: (subject: string, message: string) =>
+    apiCall<{ message: string; query: SupportQuery }>('/queries', {
+      method: 'POST',
+      body: JSON.stringify({ subject, message }),
+    }),
+
+  getMyQueries: () =>
+    apiCall<{ queries: SupportQuery[] }>('/queries/my', {
+      method: 'GET',
+    }),
+
+  getAllQueriesAdmin: () =>
+    apiCall<{ queries: SupportQuery[] }>('/queries/admin/all', {
+      method: 'GET',
+    }),
+
+  replyToQuery: (queryId: string, adminReply: string) =>
+    apiCall<{ message: string; query: SupportQuery }>(`/queries/admin/${queryId}/reply`, {
+      method: 'PUT',
+      body: JSON.stringify({ adminReply }),
     }),
 }

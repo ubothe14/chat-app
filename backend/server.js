@@ -11,6 +11,8 @@ import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import chatRoutes from './routes/chat.js'
 import videoRoutes from './routes/video.js'
+import queryRoutes from './routes/queries.js'
+import Visit from './models/Visit.js'
 
 const app = express()
 
@@ -33,6 +35,27 @@ app.use(cors({
 
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
+
+// ─── ANALYTICS MIDDLEWARE (Real-World Hit Tracking) ───
+app.use(async (req, res, next) => {
+  // Only track API hits or general entry, ignore static assets/noisy paths
+  const ignoredPaths = ['/uploads', '/api/health', '/favicon.ico'];
+  if (ignoredPaths.some(p => req.path.startsWith(p))) return next();
+
+  try {
+    const visit = new Visit({
+      ip: req.ip || req.headers['x-forwarded-for'],
+      userAgent: req.headers['user-agent'],
+      path: req.path,
+      referrer: req.headers['referer'] || req.headers['referrer'],
+      deviceType: req.headers['sec-ch-ua-mobile'] === '?1' ? 'Mobile' : 'Desktop'
+    });
+    await visit.save();
+  } catch (err) {
+    console.warn('⚠️ Analytics tracking failed:', err.message);
+  }
   next();
 });
 
@@ -75,6 +98,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/video', videoRoutes)
+app.use('/api/queries', queryRoutes)
 
 // Home route
 app.get('/', (req, res) => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { userAPI, chatAPI, getFullImageUrl, type Conversation, type User } from '../services/api_service'
 import { socketService } from '../services/socket_service'
+import SupportHub from './SupportHub'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -774,6 +775,14 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
     )
   }
 
+  const renderSupportPane = () => {
+    return (
+      <div className={`absolute inset-0 z-40 flex flex-col h-full bg-slate-50 overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'support' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+          <SupportHub />
+      </div>
+    )
+  }
+
   return (
     <div className="w-full h-full glass-panel flex flex-col border-r border-wa-border flex-shrink-0 relative overflow-hidden">
       {renderMainPane()}
@@ -781,6 +790,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
       {renderNewChatPane()}
       {renderNewGroupPane()}
       {renderDiscoverPane()}
+      {renderSupportPane()}
     </div>
   )
 }
