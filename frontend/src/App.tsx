@@ -376,8 +376,8 @@ function App() {
     )
   }
 
-  const MainLayout = (
-    <div className="flex h-[100dvh] bg-transparent overflow-hidden">
+  const LayoutContent = (
+    <div className="flex flex-1 h-full bg-transparent overflow-hidden min-h-0">
       {isAuthenticated && registeredUser && !registeredUser.phone && (
         <CompleteProfileModal
           userId={currentUserId || ''}
@@ -453,8 +453,9 @@ function App() {
   )
 
   return (
-    <div className="h-[100dvh] w-screen bg-transparent font-wa antialiased overflow-hidden flex flex-col relative">
+    <div className="h-screen w-screen bg-transparent font-wa antialiased overflow-hidden flex flex-col relative text-wa-text-primary">
       <div className="bg-blobs absolute inset-0 pointer-events-none" />
+      
       {incomingCall && (
         <CallOverlay 
           type="incoming" 
@@ -472,11 +473,12 @@ function App() {
           onDecline={handleDeclineCall} 
         />
       )}
+
       {videoClient ? (
         <StreamVideo client={videoClient}>
-          {MainLayout}
+          {LayoutContent}
         </StreamVideo>
-      ) : MainLayout}
+      ) : LayoutContent}
     </div>
   )
 }

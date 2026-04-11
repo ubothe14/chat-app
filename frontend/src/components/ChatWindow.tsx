@@ -811,7 +811,7 @@ export default function ChatWindow({
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
       {/* Message Input Area */}
-      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 mb-2 px-[8px] py-[6px] pb-[calc(6px+env(safe-area-inset-bottom))]' : 'm-2 px-[14px] py-[10px]'}`}>
+      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 mb-2 px-[8px] py-[6px]' : 'm-2 px-[14px] py-[10px]'}`}>
         {/* Plus / Attach with popup */}
         <div className="relative" ref={attachRef}>
           <button
