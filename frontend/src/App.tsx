@@ -387,16 +387,19 @@ function App() {
         />
       )}
       
-      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full flex-shrink-0`}>
-        <SidebarNav 
-          activeTab={activeNavTab} 
-          onTabChange={handleTabChange} 
-          onLogout={handleLogout} 
-          userRole={registeredUser?.role} 
-          verificationStatus={registeredUser?.verificationStatus} 
-          user={registeredUser} 
-        />
-        <div className={`flex-shrink-0 border-r border-[#dadde1] ${isMobile && !showChatOnMobile ? 'w-full' : 'w-[408px] hidden md:block'} overflow-hidden`}>
+      {/* Selection flow for mobile: Sidebar list vs Chat window */}
+      <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full flex-grow overflow-hidden`}>
+        {!isMobile && (
+          <SidebarNav 
+            activeTab={activeNavTab} 
+            onTabChange={handleTabChange} 
+            onLogout={handleLogout} 
+            userRole={registeredUser?.role} 
+            verificationStatus={registeredUser?.verificationStatus} 
+            user={registeredUser} 
+          />
+        )}
+        <div className={`flex-1 h-full border-r border-wa-separator overflow-hidden`}>
           <Sidebar 
             conversations={conversations} 
             selectedConversation={selectedConversation} 
@@ -406,6 +409,7 @@ function App() {
             activeTab={activeNavTab} 
             user={registeredUser} 
             onUserUpdate={handleProfileUpdate} 
+            isMobile={isMobile}
           />
         </div>
       </div>

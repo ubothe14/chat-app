@@ -11,13 +11,27 @@ interface SidebarProps {
   activeTab?: string
   user?: User | null
   onUserUpdate?: (updatedUser: User) => void
+  isMobile?: boolean
 }
 
-function SectionHeader({ title, children }: { title: string; children?: React.ReactNode }) {
+function SectionHeader({ title, children, isMobile, user, onAvatarClick }: { title: string; children?: React.ReactNode, isMobile?: boolean, user?: User | null, onAvatarClick?: () => void }) {
   return (
-    <div className="h-[60px] bg-wa-bg-panel/70 backdrop-blur-xl px-[16px] flex items-center justify-between flex-shrink-0 border-b border-wa-separator z-10 sticky top-0">
-      <h1 className="text-[22px] font-bold text-wa-primary font-display">{title}</h1>
-      <div className="flex items-center gap-[6px]">
+    <div className={`flex-shrink-0 bg-wa-bg-panel/70 backdrop-blur-xl border-b border-wa-separator z-10 sticky top-0 flex items-center justify-between ${isMobile ? 'h-[50px] px-[12px]' : 'h-[60px] px-[16px]'}`}>
+      <div className="flex items-center gap-3">
+        {isMobile && user && (
+          <div className="w-[32px] h-[32px] rounded-full overflow-hidden cursor-pointer active:scale-95 transition-transform" onClick={onAvatarClick}>
+            {user.avatar ? (
+              <img src={getFullImageUrl(user.avatar) || ''} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-wa-bg-input flex items-center justify-center">
+                <PersonAvatar />
+              </div>
+            )}
+          </div>
+        )}
+        <h1 className={`${isMobile ? 'text-[18px]' : 'text-[22px]'} font-bold text-wa-primary font-display truncate max-w-[120px] sm:max-w-none`}>{title}</h1>
+      </div>
+      <div className="flex items-center gap-[4px]">
         {children}
       </div>
     </div>
@@ -55,7 +69,7 @@ function formatTimestamp(dateStr: string | null | undefined): string {
   }
 }
 
-export default function Sidebar({ conversations, selectedConversation, onSelectConversation, onConversationCreated, currentUserId, activeTab = 'chats', user, onUserUpdate }: SidebarProps) {
+export default function Sidebar({ conversations, selectedConversation, onSelectConversation, onConversationCreated, currentUserId, activeTab = 'chats', user, onUserUpdate, isMobile }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [searchFocused, setSearchFocused] = useState(false)
@@ -283,9 +297,14 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const renderMainPane = () => {
     return (
       <div className={`absolute inset-0 flex flex-col h-full bg-white transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${showNewChat || showNewGroup || activeTab === 'profile' ? 'translate-x-[-10%]' : 'translate-x-0'}`}>
-        <SectionHeader title="Socialize">
-          <button onClick={openNewChat} className="w-[40px] h-[40px] flex items-center justify-center rounded-full hover:bg-wa-bg-hover transition-all duration-200" title="New chat">
-            <svg viewBox="0 0 24 24" width="22" height="22"><path fill="#54656f" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM13 11h-2v2H9v-2H7V9h2V7h2v2h2v2z" /></svg>
+        <SectionHeader 
+          title="Socialize" 
+          isMobile={isMobile} 
+          user={user} 
+          onAvatarClick={() => { /* This should show profile */ }}
+        >
+          <button onClick={openNewChat} className={`flex items-center justify-center rounded-full hover:bg-wa-bg-hover transition-all duration-200 ${isMobile ? 'w-[36px] h-[36px]' : 'w-[40px] h-[40px]'}`} title="New chat">
+            <svg viewBox="0 0 24 24" width={isMobile ? 20 : 22} height={isMobile ? 20 : 22}><path fill="#54656f" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM13 11h-2v2H9v-2H7V9h2V7h2v2h2v2z" /></svg>
           </button>
           <div className="relative" ref={menuRef}>
             <button onClick={() => setShowMenu(!showMenu)} className={`w-[40px] h-[40px] flex items-center justify-center rounded-full transition-all duration-200 ${showMenu ? 'bg-wa-bg-hover' : 'hover:bg-wa-bg-hover'}`}>

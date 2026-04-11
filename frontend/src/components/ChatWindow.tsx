@@ -523,8 +523,8 @@ export default function ChatWindow({
   return (
     <div className="flex-1 flex flex-col bg-wa-bg-chat h-full relative chat-bg-pattern overflow-hidden">
       {/* Header */}
-      <div className="h-[60px] bg-wa-bg-panel/90 backdrop-blur-xl border-b border-wa-separator flex items-center justify-between px-[16px] flex-shrink-0 z-20">
-        <div className="flex items-center gap-[15px] cursor-pointer group" onClick={() => setShowChatMenu(!showChatMenu)}>
+      <div className={`${isMobile ? 'h-[52px] px-[12px]' : 'h-[60px] px-[16px]'} bg-wa-bg-panel/90 backdrop-blur-xl border-b border-wa-separator flex items-center justify-between flex-shrink-0 z-20`}>
+        <div className="flex items-center gap-[10px] md:gap-[15px] cursor-pointer min-w-0" onClick={() => setShowChatMenu(!showChatMenu)}>
           {isMobile && (
             <button onClick={(e) => { e.stopPropagation(); onBack?.() }} className="p-2 -ml-2 hover:bg-black/5 rounded-full">
               <svg viewBox="0 0 24 24" width="24" height="24" className="text-wa-text-primary"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
@@ -536,27 +536,27 @@ export default function ChatWindow({
             avatar={headerAvatar || undefined}
           />
           <div className="min-w-0">
-            <h2 className="text-wa-text-primary text-[16px] font-medium leading-[21px] truncate">{conversationName}</h2>
-            <p className="text-wa-primary text-[13px] leading-[20px] truncate h-[20px]">
+            <h2 className={`text-wa-text-primary ${isMobile ? 'text-[15px]' : 'text-[16px]'} font-semibold leading-tight truncate`}>{conversationName}</h2>
+            <p className="text-wa-primary text-[12px] leading-normal truncate">
               {typingStatus ? (
-                <span className="animate-pulse">{typingStatus.userName} is typing...</span>
+                <span className="animate-pulse">{typingStatus.userName} typing...</span>
               ) : (
-                <span className="text-wa-text-secondary">{selectedConversation.isGroup ? 'Group info' : 'Business Account'}</span>
+                <span className="text-wa-text-secondary">{selectedConversation.isGroup ? 'Group' : 'Socialize User'}</span>
               )}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-[12px]">
-          {/* Main Video Call Button */}
+        <div className="flex items-center gap-[8px] md:gap-[12px] flex-shrink-0">
+          {/* Video Call Button */}
           <button 
             onClick={initiateVideoCall}
-            className="flex items-center bg-white border border-wa-border rounded-full px-[14px] py-[7px] hover:bg-blue-50 hover:border-blue-200 transition-all cursor-pointer group shadow-sm active:scale-95"
+            className={`flex items-center bg-white border border-wa-border rounded-full hover:bg-blue-50 transition-all cursor-pointer shadow-sm active:scale-95 ${isMobile ? 'p-[8px]' : 'px-[14px] py-[7px]'}`}
             title="Start Video Call"
           >
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="#54656f" className="group-hover:fill-blue-600">
+            <svg viewBox="0 0 24 24" width={isMobile ? 18 : 20} height={isMobile ? 18 : 20} fill="#54656f" className="group-hover:fill-blue-600">
               <path d="M18 7l4-4V17l-4-4V7zM4 6h10c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V8c0-1.1.9-2 2-2z" />
             </svg>
-            <span className="text-wa-text-primary text-[14px] font-semibold ml-[8px] group-hover:text-blue-600">Call</span>
+            {!isMobile && <span className="text-wa-text-primary text-[14px] font-semibold ml-[8px]">Call</span>}
           </button>
 
           <div className="h-[24px] w-[1px] bg-wa-border mx-1" />
@@ -696,7 +696,7 @@ export default function ChatWindow({
                       )}
 
                       {/* Message Content Container */}
-                      <div className={`flex items-start gap-2 max-w-[75%] min-w-[65px] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <div className={`flex items-start gap-2 ${isMobile ? 'max-w-[88%]' : 'max-w-[75%]'} min-w-[65px] ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
                         {/* The Bubble */}
                         <div 
                           className={`relative glass-panel-bubble rounded-[16px] ${showTail ? (isOwn ? 'msg-out-tail rounded-tr-none' : 'msg-in-tail rounded-tl-none') : ''} ${isOwn ? 'bg-wa-bg-msg-out text-white' : 'bg-white text-wa-text-primary'}`}
@@ -811,7 +811,7 @@ export default function ChatWindow({
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
       {/* Message Input Area */}
-      <div className="glass-panel flex items-center px-[14px] py-[10px] gap-[8px] flex-shrink-0 m-2 mt-0 rounded-xl">
+      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 px-[8px] py-[6px]' : 'm-2 px-[14px] py-[10px]'}`}>
         {/* Plus / Attach with popup */}
         <div className="relative" ref={attachRef}>
           <button
