@@ -399,7 +399,7 @@ function App() {
             user={registeredUser} 
           />
         )}
-        <div className={`flex-1 h-full border-r border-wa-separator overflow-hidden`}>
+        <div className={`flex-1 md:flex-none md:w-[408px] h-full border-r border-wa-separator overflow-hidden`}>
           <Sidebar 
             conversations={conversations} 
             selectedConversation={selectedConversation} 
