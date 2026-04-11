@@ -84,7 +84,7 @@ function ChatHeaderAvatar({ isGroup, status, avatar }: { isGroup: boolean; statu
     <div className="relative w-[40px] h-[40px] flex-shrink-0">
       <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
         {avatar ? (
-          <img src={getFullImageUrl(avatar)} className="w-full h-full object-cover" alt="" />
+          <img src={getFullImageUrl(avatar) || undefined} className="w-full h-full object-cover" alt="" />
         ) : (
           <svg viewBox="0 0 212 212" width="40" height="40">
             <path fill="#6b7b8d" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z" />
@@ -188,10 +188,6 @@ export default function ChatWindow({
     return other?.name || 'Unknown'
   }
 
-  function getOtherParticipant() {
-    if (!selectedConversation) return null
-    return selectedConversation.participants.find((p: User) => p._id !== currentUserId) || selectedConversation.participants[0]
-  }
 
 
   useEffect(() => {
@@ -530,14 +526,14 @@ export default function ChatWindow({
       <div className="h-[60px] bg-wa-bg-panel/90 backdrop-blur-xl border-b border-wa-separator flex items-center justify-between px-[16px] flex-shrink-0 z-20">
         <div className="flex items-center gap-[15px] cursor-pointer group" onClick={() => setShowChatMenu(!showChatMenu)}>
           {isMobile && (
-            <button onClick={(e) => { e.stopPropagation(); onBack() }} className="p-2 -ml-2 hover:bg-black/5 rounded-full">
+            <button onClick={(e) => { e.stopPropagation(); onBack?.() }} className="p-2 -ml-2 hover:bg-black/5 rounded-full">
               <svg viewBox="0 0 24 24" width="24" height="24" className="text-wa-text-primary"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
             </button>
           )}
           <ChatHeaderAvatar 
             isGroup={selectedConversation.isGroup} 
             status={headerStatus} 
-            avatar={headerAvatar}
+            avatar={headerAvatar || undefined}
           />
           <div className="min-w-0">
             <h2 className="text-wa-text-primary text-[16px] font-medium leading-[21px] truncate">{conversationName}</h2>
