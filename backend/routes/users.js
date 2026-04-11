@@ -98,6 +98,24 @@ router.put('/profile/:userId', verifyToken, async (req, res) => {
   }
 })
 
+// Get verified users for discovery
+router.get('/discover', verifyToken, async (req, res) => {
+  try {
+    const users = await User.find({ 
+      verificationStatus: 'verified',
+      _id: { $ne: req.userId },
+      isActive: true 
+    })
+    .select('name avatar verificationStatus bio')
+    .sort({ lastLogin: -1 })
+    .limit(50)
+
+    res.json({ users })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch discovery users', message: error.message })
+  }
+})
+
 // Get all users (for admin or directory)
 router.get('/', async (req, res) => {
   try {

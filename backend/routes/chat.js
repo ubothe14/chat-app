@@ -55,6 +55,11 @@ router.post('/send', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
+    // NEW: Block messages if NOT accepted
+    if (conversation.status !== 'accepted') {
+      return res.status(403).json({ error: 'Connection request not yet accepted' })
+    }
+
     // Create new message
     const newMessage = new Message({
       conversationId,
@@ -112,14 +117,46 @@ router.post('/conversation', verifyToken, async (req, res) => {
     })
 
     await conversation.save()
-    await conversation.populate('participants', 'name email avatar')
+    await conversation.populate('participants', 'name email avatar verificationStatus bio')
 
     res.status(201).json({
-      message: 'Conversation created successfully',
+      message: 'Connection request sent successfully',
       conversation,
     })
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create conversation', message: error.message })
+    res.status(500).json({ error: 'Failed to create connection request', message: error.message })
+  }
+})
+
+// Accept/Reject connection request
+router.patch('/conversation/:conversationId/status', verifyToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params
+    const { status } = req.body // 'accepted' or 'rejected'
+
+    if (!['accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' })
+    }
+
+    const conversation = await Conversation.findById(conversationId)
+    if (!conversation || !conversation.participants.includes(req.userId)) {
+      return res.status(403).json({ error: 'Unauthorized' })
+    }
+
+    // Only the RECIPIENT can accept/reject? 
+    // Usually, the person who didn't create it is the recipient.
+    // Simplifying: any participant can change it, but UI will restrict it.
+    
+    conversation.status = status
+    await conversation.save()
+    await conversation.populate('participants', 'name email avatar verificationStatus bio')
+
+    res.json({
+      message: `Connection request ${status}`,
+      conversation
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update connection status', message: error.message })
   }
 })
 

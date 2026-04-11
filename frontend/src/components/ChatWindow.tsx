@@ -326,6 +326,7 @@ export default function ChatWindow({
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation?._id || sendingMessage) return
+    if (selectedConversation.status !== 'accepted') return
 
     const text = messageInput.trim()
     setMessageInput('')
@@ -372,6 +373,27 @@ export default function ChatWindow({
     typingTimeoutRef.current = setTimeout(() => {
       socketService.emitStopTyping(selectedConversation._id, currentUserId)
     }, 2000)
+  }
+
+  const handleUpdateStatus = async (newStatus: 'accepted' | 'rejected') => {
+    if (!selectedConversation?._id) return
+    try {
+      const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/chat/conversation/${selectedConversation._id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await resp.json();
+      if (data.conversation) {
+        // We'll need to update the parent state. For now, we'll force a refresh.
+        window.location.reload(); 
+      }
+    } catch (err) {
+      console.error('Failed to update status:', err)
+    }
   }
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, type: string) => {
@@ -810,37 +832,69 @@ export default function ChatWindow({
       <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" onChange={(e) => handleFileUpload(e, 'document')} />
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
-      {/* Message Input Area */}
-      <div className={`glass-panel flex items-center gap-[8px] flex-shrink-0 mt-0 rounded-xl ${isMobile ? 'm-1 mb-2 px-[8px] py-[6px]' : 'm-2 px-[14px] py-[10px]'}`}>
-        {/* Plus / Attach with popup */}
-        <div className="relative" ref={attachRef}>
-          <button
-            onClick={() => setShowAttachMenu(!showAttachMenu)}
-            className={`w-[42px] h-[42px] flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0 ${showAttachMenu ? 'bg-wa-bg-hover rotate-[135deg]' : 'hover:bg-wa-bg-hover rotate-0'}`}
-            title="Attach"
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#64748b">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-          </button>
-          {showAttachMenu && (
-            <div className="absolute bottom-[52px] left-0 bg-white rounded-[12px] shadow-[0_8px_24px_rgba(15,23,42,0.12)] p-[12px] z-50 w-[200px] animate-in fade-in slide-in-from-bottom-2 duration-150">
-              <div className="flex flex-col gap-[4px]">
+      {/* Handshake / Input */}
+      {selectedConversation.status === 'pending' ? (
+        <div className="bg-white border-t border-wa-separator p-6 flex flex-col items-center gap-4 animate-in slide-in-from-bottom duration-300">
+          <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-2">
+            <svg viewBox="0 0 24 24" width="32" height="32" className="text-wa-primary"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          </div>
+          
+          <div className="text-center max-w-[400px]">
+            <h3 className="text-[17px] font-bold text-wa-text-primary mb-1">
+              Connection Request
+            </h3>
+            <p className="text-[14px] text-wa-text-secondary leading-relaxed">
+              {selectedConversation.createdBy === currentUserId 
+                ? `Waiting for ${getConversationName()} to accept your connection request.`
+                : `${getConversationName()} wants to connect with you. Accept to start chatting.`}
+            </p>
+          </div>
+
+          {selectedConversation.createdBy !== currentUserId && (
+            <div className="flex items-center gap-3 w-full max-w-[300px] mt-2">
+              <button 
+                onClick={() => handleUpdateStatus('rejected')}
+                className="flex-1 h-[42px] border border-wa-separator rounded-xl text-[14px] font-bold text-wa-text-secondary hover:bg-slate-50 transition-all"
+              >
+                Reject
+              </button>
+              <button 
+                onClick={() => handleUpdateStatus('accepted')}
+                className="flex-1 h-[42px] bg-wa-primary text-white rounded-xl text-[14px] font-bold shadow-lg shadow-wa-primary/20 hover:bg-wa-primary-dark transition-all"
+              >
+                Accept
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div 
+          className="bg-wa-bg-panel/95 backdrop-blur-xl border-t border-wa-separator px-[12px] md:px-[20px] py-[10px] flex items-end gap-[12px] flex-shrink-0 z-30"
+          style={{ paddingBottom: isMobile ? '24px' : '15px' }}
+        >
+          <div className="flex gap-[4px] mb-[6px]" ref={attachRef}>
+            <button
+              onClick={() => setShowAttachMenu(!showAttachMenu)}
+              className={`w-[40px] h-[40px] flex items-center justify-center rounded-full transition-colors ${showAttachMenu ? 'bg-gray-200 rotation-45' : 'hover:bg-gray-100'}`}
+              title="Attach"
+            >
+              <Plus size={24} color="#54656f" />
+            </button>
+            {showAttachMenu && (
+              <div className="absolute bottom-[65px] left-[15px] bg-white border border-wa-border rounded-xl shadow-2xl py-[12px] z-50 animate-in slide-in-from-bottom-5 fade-in duration-200 origin-bottom-left w-[220px]">
                 {attachOptions.map((opt, i) => (
                   <button
                     key={i}
                     onClick={() => handleAttachOptionClick(opt.type as AttachOptionType)}
-                    className="flex items-center gap-[14px] px-[12px] py-[10px] rounded-[8px] hover:bg-wa-bg-hover transition-colors group"
+                    className="w-full px-[18px] py-[12px] flex items-center gap-[15px] hover:bg-gray-50 transition-colors group"
                   >
-                    <div className="w-[40px] h-[40px] rounded-full flex items-center justify-center flex-shrink-0" style={{ background: opt.color }}>
+                    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: opt.color }}>
                       {opt.icon}
                     </div>
-                    <span className="text-wa-text-primary text-[14px]">{opt.label}</span>
+                    <span className="text-[14.5px] font-medium text-wa-text-primary">{opt.label}</span>
                   </button>
                 ))}
               </div>
-            </div>
-          )}
         </div>
 
         {/* Input container */}

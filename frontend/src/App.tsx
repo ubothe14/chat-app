@@ -411,33 +411,49 @@ function App() {
           />
         )}
         
-        {/* Sidebar Container */}
-        <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:w-[476px] md:min-w-[476px] md:flex-none overflow-hidden bg-transparent border-r border-wa-separator/10`}>
-          {!isMobile && (
-            <SidebarNav 
-              activeTab={activeNavTab} 
-              onTabChange={handleTabChange} 
-              onLogout={handleLogout} 
-              userRole={registeredUser?.role} 
-              verificationStatus={registeredUser?.verificationStatus} 
-              user={registeredUser} 
-            />
-          )}
-          <div className="flex-1 h-full overflow-hidden">
-            <Sidebar 
-              conversations={conversations} 
-              selectedConversation={selectedConversation} 
-              onSelectConversation={handleSelectConversation} 
-              onConversationCreated={handleConversationCreated} 
-              currentUserId={currentUserId || ''} 
-              activeTab={activeNavTab} 
-              user={registeredUser} 
-              onUserUpdate={handleProfileUpdate} 
-              isMobile={isMobile}
-              onTabChange={handleTabChange}
-            />
+        {/* Validation Gateway */}
+        {registeredUser.verificationStatus !== 'verified' ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-white/40 backdrop-blur-md p-8 text-center">
+            <div className="w-[120px] h-[120px] bg-wa-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+              <svg viewBox="0 0 24 24" width="60" height="60" className="text-wa-primary"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-1v-1h1v1zm1-3h-2v-5h2v5z"/></svg>
+            </div>
+            <h1 className="text-[28px] font-bold text-wa-text-primary mb-4">Identity Validation Required</h1>
+            <p className="max-w-[420px] text-wa-text-secondary text-[15px] mb-8 leading-relaxed">
+              To browse other users and start chatting, your profile must be manually verified. Please ensure you have uploaded a valid Govt ID in your profile settings.
+            </p>
+            <div className="bg-wa-primary/5 px-6 py-4 rounded-2xl border border-wa-primary/10">
+              <span className="text-wa-primary font-bold uppercase tracking-wider text-[12px]">Current Status: {registeredUser.verificationStatus.toUpperCase()}</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Sidebar Container */
+          <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:w-[476px] md:min-w-[476px] md:flex-none overflow-hidden bg-transparent border-r border-wa-separator/10`}>
+            {!isMobile && (
+              <SidebarNav 
+                activeTab={activeNavTab} 
+                onTabChange={handleTabChange} 
+                onLogout={handleLogout} 
+                userRole={registeredUser?.role} 
+                verificationStatus={registeredUser?.verificationStatus} 
+                user={registeredUser} 
+              />
+            )}
+            <div className="flex-1 h-full overflow-hidden">
+              <Sidebar 
+                conversations={conversations} 
+                selectedConversation={selectedConversation} 
+                onSelectConversation={handleSelectConversation} 
+                onConversationCreated={handleConversationCreated} 
+                currentUserId={currentUserId || ''} 
+                activeTab={activeNavTab} 
+                user={registeredUser} 
+                onUserUpdate={handleProfileUpdate} 
+                isMobile={isMobile}
+                onTabChange={handleTabChange}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Chat / Content Container */}
         <div className={`flex-1 flex flex-col min-w-0 bg-transparent relative overflow-hidden ${isMobile && !showChatOnMobile ? 'hidden' : 'flex'}`}>

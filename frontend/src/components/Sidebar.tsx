@@ -89,6 +89,8 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const [groupName, setGroupName] = useState('')
   const [creatingGroup, setCreatingGroup] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [discoveryUsers, setDiscoveryUsers] = useState<User[]>([])
+  const [loadingDiscovery, setLoadingDiscovery] = useState(false)
   
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -170,19 +172,33 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   })
 
   async function openNewChat() {
-    setShowNewChat(true)
-    setLoadingUsers(true)
+    onTabChange?.('discover') // Redirect to discover instead of old new chat
+  }
+
+  const fetchDiscoveryUsers = async () => {
+    setLoadingDiscovery(true)
     try {
-      const response = await userAPI.getAllUsers()
-      const users = (response.users || [])
-      setAllUsers(users)
-      setSearchResults(users)
+      const response = await userAPI.getAllUsers() // We'll update api_service to use the new discover route if possible
+      // Actually let's assume getAllUsers is updated or use a custom fetch here
+      const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/users/discover`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await resp.json();
+      setDiscoveryUsers(data.users || [])
     } catch (err) {
-      console.error('Failed to load users:', err)
+      console.error('Failed to load discovery users:', err)
     } finally {
-      setLoadingUsers(false)
+      setLoadingDiscovery(false)
     }
   }
+
+  useEffect(() => {
+    if (activeTab === 'discover') {
+      fetchDiscoveryUsers()
+    }
+  }, [activeTab])
 
   useEffect(() => {
     if (!showNewChat) return
@@ -418,9 +434,18 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
             </div>
 
             <div className="bg-white shadow-sm px-[30px] pt-[14px] pb-[20px]">
-                <p className="text-wa-primary text-[14px] mb-[18px] font-medium">About</p>
+                <p className="text-wa-primary text-[14px] mb-[18px] font-medium">Bio / About</p>
                 <div className="flex items-center gap-[12px]">
-                    <input type="text" value="Available" readOnly className="flex-1 text-wa-text-primary text-[17px] focus:outline-none bg-transparent" />
+                    <textarea 
+                      value={user?.bio || ''} 
+                      onChange={(e) => {
+                        if(user && onUserUpdate) {
+                          onUserUpdate({...user, bio: e.target.value});
+                        }
+                      }}
+                      placeholder="Tell others about yourself..."
+                      className="flex-1 text-wa-text-primary text-[16px] focus:outline-none bg-transparent resize-none min-h-[60px]" 
+                    />
                 </div>
             </div>
           </div>
@@ -696,12 +721,69 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
     )
   }
 
+  const renderDiscoverPane = () => {
+    return (
+      <div className={`absolute inset-0 z-40 flex flex-col h-full bg-white overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'discover' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+        <div className="h-[60px] bg-wa-primary text-white px-[20px] flex flex-col justify-center flex-shrink-0">
+          <h1 className="text-[19px] font-bold">Discover People</h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 scrollbar-wa">
+          {loadingDiscovery ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wa-primary"></div>
+            </div>
+          ) : discoveryUsers.length === 0 ? (
+            <div className="text-center py-10 px-4">
+              <p className="text-wa-text-secondary text-[14px]">No verified users found yet. Check back later!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {discoveryUsers.map(u => (
+                <div key={u._id} className="bg-white rounded-2xl shadow-sm border border-wa-separator/20 p-4 transition-all hover:shadow-md group">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-[64px] h-[64px] rounded-full overflow-hidden flex-shrink-0 border-2 border-wa-primary/10">
+                      {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-wa-text-primary font-bold text-[16px] truncate">{u.name}</h3>
+                        <span className="w-4 h-4 bg-wa-primary text-white rounded-full flex items-center justify-center text-[8px] font-bold ring-2 ring-wa-primary/10">✓</span>
+                      </div>
+                      <p className="text-wa-primary text-[12px] font-bold uppercase tracking-wider">Verified User</p>
+                    </div>
+                  </div>
+                  
+                  {u.bio ? (
+                    <p className="text-wa-text-secondary text-[13px] line-clamp-2 mb-4 italic leading-relaxed">
+                      "{u.bio}"
+                    </p>
+                  ) : (
+                    <p className="text-wa-text-muted text-[13px] mb-4">No bio provided.</p>
+                  )}
+
+                  <button 
+                    onClick={() => u._id && startConversation(u._id)}
+                    className="w-full h-[38px] bg-wa-primary text-white rounded-xl text-[14px] font-bold transition-all active:scale-95 hover:bg-wa-primary-dark"
+                  >
+                    Send Connection Request
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="w-full h-full glass-panel flex flex-col border-r border-wa-border flex-shrink-0 relative overflow-hidden">
       {renderMainPane()}
       {renderProfilePane()}
       {renderNewChatPane()}
       {renderNewGroupPane()}
+      {renderDiscoverPane()}
     </div>
   )
 }
