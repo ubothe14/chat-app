@@ -76,32 +76,38 @@ function MessageAvatar({ user }: { user?: User | string }) {
   )
 }
 
-function ChatHeaderAvatar({ isGroup, status }: { isGroup: boolean; status?: string }) {
+function ChatHeaderAvatar({ isGroup, status, avatar }: { isGroup: boolean; status?: string; avatar?: string }) {
   const isVerified = status === 'verified' || status === 'pending'
   const isUnverified = status === 'unverified'
   
   return (
-    <div className="relative w-[40px] h-[40px] rounded-full overflow-hidden flex-shrink-0">
-      <svg viewBox="0 0 212 212" width="40" height="40">
-        <path fill="#6b7b8d" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z" />
-        {isGroup ? (
-          <>
-            <path fill="#cfd4d6" d="M88.274 148.462c-.18-3.478-.737-6.937-1.652-10.307 4.14-.893 8.417-1.372 12.795-1.372 4.443 0 8.782.493 12.975 1.412-.92 3.38-1.48 6.85-1.66 10.34a45.85 45.85 0 0 1-11.315 1.427 45.8 45.8 0 0 1-11.143-1.5z" />
-            <path fill="#cfd4d6" d="M99.417 125.317c-2.108 0-4.155-.2-6.127-.588C81.6 122.512 73.2 113.91 73.2 103.35c0-11.726 9.5-21.235 21.217-21.235 11.717 0 21.217 9.51 21.217 21.235 0 10.56-8.4 19.162-20.09 21.379a30.3 30.3 0 0 1-6.127.588z" />
-            <path fill="#cfd4d6" d="M149.543 161.064a58.275 58.275 0 0 0-5.013-5.157C134.16 146.28 120.867 141 106.39 141h-1.363c-12.398.143-23.753 4.263-32.803 11.212l.003.003a58.186 58.186 0 0 0-5.01 5.153 104.13 104.13 0 0 0 39.092 7.588 104.244 104.244 0 0 0 43.234-3.892z" />
-          </>
+    <div className="relative w-[40px] h-[40px] flex-shrink-0">
+      <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
+        {avatar ? (
+          <img src={getFullImageUrl(avatar)} className="w-full h-full object-cover" alt="" />
         ) : (
-          <>
-            <path fill="#cfd4d6" d="M173.561 171.615a62.767 62.767 0 0 0-22.632-22.851c-9.653-5.901-20.347-9.018-31.342-9.135-11.108.117-21.854 3.241-31.545 9.148a62.81 62.81 0 0 0-22.634 22.853 89.488 89.488 0 0 0 54.164 18.257 89.488 89.488 0 0 0 53.989-18.272z" />
-            <path fill="#cfd4d6" d="M106.002 125.5c2.645 0 5.212-.253 7.68-.737a38.272 38.272 0 0 0 30.513-38.089C144.028 65.326 126.914 48 106.002 48S67.975 65.326 67.975 86.674a38.272 38.272 0 0 0 30.513 38.089A39.66 39.66 0 0 0 106.002 125.5z" />
-          </>
+          <svg viewBox="0 0 212 212" width="40" height="40">
+            <path fill="#6b7b8d" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z" />
+            {isGroup ? (
+              <>
+                <path fill="#cfd4d6" d="M88.274 148.462c-.18-3.478-.737-6.937-1.652-10.307 4.14-.893 8.417-1.372 12.795-1.372 4.443 0 8.782.493 12.975 1.412-.92 3.38-1.48 6.85-1.66 10.34a45.85 45.85 0 0 1-11.315 1.427 45.8 45.8 0 0 1-11.143-1.5z" />
+                <path fill="#cfd4d6" d="M99.417 125.317c-2.108 0-4.155-.2-6.127-.588C81.6 122.512 73.2 113.91 73.2 103.35c0-11.726 9.5-21.235 21.217-21.235 11.717 0 21.217 9.51 21.217 21.235 0 10.56-8.4 19.162-20.09 21.379a30.3 30.3 0 0 1-6.127.588z" />
+                <path fill="#cfd4d6" d="M149.543 161.064a58.275 58.275 0 0 0-5.013-5.157C134.16 146.28 120.867 141 106.39 141h-1.363c-12.398.143-23.753 4.263-32.803 11.212l.003.003a58.186 58.186 0 0 0-5.01 5.153 104.13 104.13 0 0 0 39.092 7.588 104.244 104.244 0 0 0 43.234-3.892z" />
+              </>
+            ) : (
+              <>
+                <path fill="#cfd4d6" d="M173.561 171.615a62.767 62.767 0 0 0-22.632-22.851c-9.653-5.901-20.347-9.018-31.342-9.135-11.108.117-21.854 3.241-31.545 9.148a62.81 62.81 0 0 0-22.634 22.853 89.488 89.488 0 0 0 54.164 18.257 89.488 89.488 0 0 0 53.989-18.272z" />
+                <path fill="#cfd4d6" d="M106.002 125.5c2.645 0 5.212-.253 7.68-.737a38.272 38.272 0 0 0 30.513-38.089C144.028 65.326 126.914 48 106.002 48S67.975 65.326 67.975 86.674a38.272 38.272 0 0 0 30.513 38.089A39.66 39.66 0 0 0 106.002 125.5z" />
+              </>
+            )}
+          </svg>
         )}
-      </svg>
+      </div>
       {(isVerified || isUnverified) && (
         <span style={{
           position: 'absolute',
-          bottom: '-2px',
-          right: '-2px',
+          bottom: '-4px',
+          right: '-4px',
           width: '18px',
           height: '18px',
           borderRadius: '50%',
@@ -110,10 +116,11 @@ function ChatHeaderAvatar({ isGroup, status }: { isGroup: boolean; status?: stri
           justifyContent: 'center',
           background: isVerified ? '#16a34a' : '#f59e0b',
           color: '#fff',
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 700,
           border: '2px solid #fff',
-          boxShadow: '0 0 0 1px rgba(15,23,42,0.12)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+          zIndex: 1,
         }}>
           {isVerified ? '✓' : '!'}
         </span>
@@ -292,15 +299,34 @@ export default function ChatWindow({
     }
   }, [messages.length])
 
-  // Close menus on outside click
+  // Close menus on outside click and Escape key
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (attachRef.current && !attachRef.current.contains(e.target as Node)) setShowAttachMenu(false)
-      if (chatMenuRef.current && !chatMenuRef.current.contains(e.target as Node)) setShowChatMenu(false)
+      const target = e.target as HTMLElement;
+      if (attachRef.current && !attachRef.current.contains(target)) setShowAttachMenu(false)
+      if (chatMenuRef.current && !chatMenuRef.current.contains(target)) setShowChatMenu(false)
+      
+      // Close reaction menu if clicking outside of it and not on a trigger button
+      if (reactionMenuId && !target.closest('.reaction-picker-panel') && !target.closest('.reaction-btn-trigger')) {
+        setReactionMenuId(null)
+      }
     }
+
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAttachMenu(false)
+        setShowChatMenu(false)
+        setReactionMenuId(null)
+      }
+    }
+
     document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [reactionMenuId])
 
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation?._id || sendingMessage) return
@@ -494,24 +520,25 @@ export default function ChatWindow({
   }
 
   const conversationName = getConversationName()
-  const otherParticipant = getOtherParticipant()
+  const otherParticipant = selectedConversation.participants?.find(p => p._id !== currentUserId)
+  const headerStatus = selectedConversation.isGroup ? undefined : otherParticipant?.verificationStatus
+  const headerAvatar = selectedConversation.isGroup ? selectedConversation.groupIcon : otherParticipant?.avatar
 
   return (
-    <div className="flex flex-col flex-1 h-full min-w-0 bg-transparent">
-      {/* Chat Header */}
-      <div className="h-[60px] glass-panel border-b-0 border-wa-border flex items-center justify-between px-[16px] flex-shrink-0 z-10 m-2 rounded-xl mb-0">
-        <div className="flex items-center gap-[8px] min-w-0 cursor-pointer">
+    <div className="flex-1 flex flex-col bg-wa-bg-chat h-full relative chat-bg-pattern overflow-hidden">
+      {/* Header */}
+      <div className="h-[60px] bg-wa-bg-panel/90 backdrop-blur-xl border-b border-wa-separator flex items-center justify-between px-[16px] flex-shrink-0 z-20">
+        <div className="flex items-center gap-[15px] cursor-pointer group" onClick={() => setShowChatMenu(!showChatMenu)}>
           {isMobile && (
-            <button 
-              onClick={onBack}
-              className="p-1 hover:bg-[#d1d7db] rounded-full transition-colors mr-1"
-            >
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="#54656f">
-                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-              </svg>
+            <button onClick={(e) => { e.stopPropagation(); onBack() }} className="p-2 -ml-2 hover:bg-black/5 rounded-full">
+              <svg viewBox="0 0 24 24" width="24" height="24" className="text-wa-text-primary"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" /></svg>
             </button>
           )}
-          <ChatHeaderAvatar isGroup={selectedConversation.isGroup} status={otherParticipant?.verificationStatus} />
+          <ChatHeaderAvatar 
+            isGroup={selectedConversation.isGroup} 
+            status={headerStatus} 
+            avatar={headerAvatar}
+          />
           <div className="min-w-0">
             <h2 className="text-wa-text-primary text-[16px] font-medium leading-[21px] truncate">{conversationName}</h2>
             <p className="text-wa-primary text-[13px] leading-[20px] truncate h-[20px]">

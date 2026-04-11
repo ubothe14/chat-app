@@ -1,3 +1,4 @@
+// Final restart after successful Atlas connection
 import 'dotenv/config'
 import express from 'express'
 import path from 'path'
@@ -36,21 +37,23 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const PORT = process.env.PORT || 5000
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chat-app'
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/chat-app'
 
 // Middleware
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:4173',
   'http://127.0.0.1:4173',
-]
+].filter(Boolean)
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
+      console.warn(`Blocked by CORS: ${origin}`)
       callback(new Error(`CORS origin not allowed: ${origin}`))
     }
   },
@@ -62,11 +65,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // MongoDB Connection
 mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
+  .then(() => {
+    console.log('✅ MongoDB connected')
+    mongoose.set('bufferCommands', true) // Enable buffering once connected
+  })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err.message)
-    console.log('⚠️  Continuing without MongoDB - using in-memory storage')
-    // Don't exit, continue with limited functionality
+    console.log('⚠️  Please ensure MongoDB is running (e.g., run `mongod` or start the service)')
+    console.log('⚠️  Operations requiring a database will fail immediately instead of hanging.')
+    
+    // Disable buffering so that API calls fail immediately instead of timeout
+    mongoose.set('bufferCommands', false)
   })
 
 // Routes

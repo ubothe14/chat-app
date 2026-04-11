@@ -4,8 +4,6 @@ import { OAuth2Client } from 'google-auth-library'
 import User from '../models/User.js'
 import { verifyToken } from '../middleware/auth.js'
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
-
 const router = express.Router()
 
 // Generate JWT Token
@@ -130,24 +128,50 @@ router.post('/google-signin', async (req, res) => {
     const { idToken } = req.body
 
     if (!idToken) {
+      console.error('❌ Google Sign-In failed: No ID Token provided')
       return res.status(400).json({ error: 'ID Token is required' })
     }
 
+    const clientId = process.env.GOOGLE_CLIENT_ID
+    if (!clientId) {
+      console.error('❌ Google Sign-In failed: GOOGLE_CLIENT_ID not found in environment')
+      return res.status(500).json({ error: 'Server configuration error: GOOGLE_CLIENT_ID missing' })
+    }
+
+    // Initialize or verify client inside the handler to ensure env is ready
+    const googleClient = new OAuth2Client(clientId)
+
     // Verify Google ID Token
-    const ticket = await client.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    })
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: clientId,
+      })
+    } catch (verifyError) {
+      console.error('❌ Google Token Verification Error:', verifyError.message)
+      return res.status(401).json({ 
+        error: 'Google authentication failed', 
+        message: verifyError.message,
+        details: 'The token provided might be invalid, expired, or have an incorrect audience.'
+      })
+    }
+
     const payload = ticket.getPayload()
     const { email, name, picture, sub: googleId } = payload
+
+    if (!email) {
+      return res.status(400).json({ error: 'Google account must have an email' })
+    }
 
     // Check if user exists
     let user = await User.findOne({ email: email.toLowerCase() })
 
     // If user doesn't exist, create one
     if (!user) {
+      console.log(`🆕 Creating new user from Google: ${email}`)
       user = new User({
-        name: name.trim(),
+        name: name || 'Google User',
         email: email.toLowerCase().trim(),
         phone: '',
         experience: '',
@@ -161,6 +185,7 @@ router.post('/google-signin', async (req, res) => {
     } else {
       // Update googleId if not present (in case of transition from manual to google)
       if (!user.googleAuth) {
+        console.log(`🔗 Linking existing account to Google: ${email}`)
         user.googleAuth = true
         user.googleId = googleId
         if (!user.avatar) user.avatar = picture
@@ -175,6 +200,7 @@ router.post('/google-signin', async (req, res) => {
     // Generate token
     const token = generateToken(user._id, user.email)
 
+    console.log(`✅ Google sign-in successful for: ${email}`)
     res.status(200).json({
       message: 'Google sign-in successful',
       token,
@@ -191,7 +217,7 @@ router.post('/google-signin', async (req, res) => {
       },
     })
   } catch (error) {
-    console.error('Google signin error:', error)
+    console.error('🔥 Unexpected Google signin error:', error)
     res.status(500).json({ error: 'Google sign-in failed', message: error.message })
   }
 })
