@@ -56,24 +56,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors({
-  origin: (origin, callback) => {
-    // If no origin (e.g. server-to-server), allow it
-    if (!origin) return callback(null, true);
-    
-    // Normalize origins by removing trailing slashes for comparison
-    const cleanOrigin = origin.replace(/\/$/, '');
-    const isAllowed = allowedOrigins.some(o => o.toLowerCase() === cleanOrigin.toLowerCase());
-    
-    // Automatically allow any Render domain in production
-    const isRenderDomain = cleanOrigin.toLowerCase().endsWith('.onrender.com');
-    
-    if (isAllowed || isRenderDomain) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS] Blocked origin: ${origin}`);
-      callback(new Error(`CORS origin not allowed: ${origin}`));
-    }
-  },
+  origin: true, // Reflect request origin - resolves any URL/domain mismatch issues on Render
   credentials: true,
 }))
 app.use(express.json({ limit: '10mb' }))
