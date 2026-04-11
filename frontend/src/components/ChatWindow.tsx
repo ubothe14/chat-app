@@ -15,10 +15,10 @@ interface ChatWindowProps {
   currentUser?: any | null
   onBack?: () => void
   isMobile?: boolean
-  videoClient: any
+  videoClient?: any
   onStartCall: (data: { conversationId: string, userName: string, userAvatar?: string, participants: string[] }) => void
-  activeCall: any
-  setActiveCall: (call: any) => void
+  activeCall?: any
+  setActiveCall?: (call: any) => void
 }
 
 function formatMessageTime(dateStr: string | undefined): string {
