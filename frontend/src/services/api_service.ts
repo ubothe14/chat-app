@@ -81,20 +81,24 @@ export const apiCall = async <T>(endpoint: string, options: ApiOptions = {}): Pr
   }
 
   try {
+    console.log(`📡 [Debug] API Request: ${options.method || 'GET'} ${url}`)
     const response = await fetch(url, {
       ...options,
       headers,
     })
 
+    console.log(`📥 [Debug] API Response: ${response.status} ${response.statusText} for ${url}`)
+    
     const data = await response.json()
 
     if (!response.ok) {
+      console.error(`❌ [Debug] API Error Status: ${response.status}`, data)
       throw new Error(data.error || 'API request failed')
     }
 
     return data as T
   } catch (error) {
-    console.error('API Error:', error)
+    console.error('❌ [Debug] API Call Exception:', error)
     throw error
   }
 }

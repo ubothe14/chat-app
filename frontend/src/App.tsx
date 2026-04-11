@@ -273,16 +273,20 @@ function App() {
   const handleGoogleSignIn = async (token: string) => {
     setIsLoading(true)
     setError(null)
+    console.log('🚀 [Debug] Starting Google Sign-In backend verification...')
     try {
       const result = await authAPI.googleSignIn(token)
+      console.log('✅ [Debug] Google Sign-In response received:', result)
       tokenManager.setToken(result.token)
       setRegisteredUser(result.user)
       setCurrentUserId(result.user._id || result.user.id || null)
       setIsAuthenticated(true)
     } catch (err: any) {
+      console.error('❌ [Debug] Google Sign-In backend error:', err)
       setError(err.message || 'Google Sign-In failed')
     } finally {
       setIsLoading(false)
+      console.log('🏁 [Debug] Google Sign-In process complete.')
     }
   }
 
