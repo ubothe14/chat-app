@@ -943,6 +943,7 @@ export default function ChatWindow({
           )}
         </button>
       </div>
+    )}
     </div>
   )
 }
