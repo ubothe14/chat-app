@@ -140,7 +140,7 @@ export default function CompleteProfileModal({ userId, onComplete }: CompletePro
       padding: '24px',
       zIndex: 9999
     }}>
-      <div style={{
+      <div className="profile-modal" style={{
         background: '#ffffff',
         borderRadius: '24px',
         width: '100%',
@@ -252,6 +252,19 @@ export default function CompleteProfileModal({ userId, onComplete }: CompletePro
           @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+          }
+          @media (max-width: 640px) {
+            .profile-modal {
+              padding: 24px !important;
+              max-width: 100% !important;
+              border-radius: 20px !important;
+            }
+            .profile-modal h2 {
+              font-size: 20px !important;
+            }
+            .profile-modal p {
+              font-size: 13px !important;
+            }
           }
         `}
       </style>

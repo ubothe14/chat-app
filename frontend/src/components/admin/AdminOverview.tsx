@@ -33,7 +33,7 @@ export default function AdminOverview({}: AdminOverviewProps) {
   return (
     <div className="space-y-6 pb-10">
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard 
           label="Total Users" 
           value={stats?.totalUsers} 

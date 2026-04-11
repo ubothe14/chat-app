@@ -677,7 +677,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   }
 
   return (
-    <div className="w-[408px] glass-panel flex flex-col h-full border-r border-wa-border flex-shrink-0 relative overflow-hidden">
+    <div className="w-full h-full glass-panel flex flex-col border-r border-wa-border flex-shrink-0 relative overflow-hidden">
       {renderMainPane()}
       {renderProfilePane()}
       {renderNewChatPane()}

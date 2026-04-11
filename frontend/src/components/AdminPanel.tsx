@@ -38,38 +38,36 @@ export default function AdminPanel() {
   return (
     <div className="flex flex-col h-full bg-[#f8fbff] overflow-hidden">
       {/* Premium Header */}
-      <div className="h-[90px] bg-wa-primary text-white px-8 flex items-center justify-between flex-shrink-0 shadow-lg z-10">
+      <div className="h-[70px] md:h-[90px] bg-wa-primary text-white px-4 md:px-8 flex items-center justify-between flex-shrink-0 shadow-lg z-10">
         <div>
-          <h1 className="text-[26px] font-bold font-display tracking-tight uppercase">Admin Panel</h1>
+          <h1 className="text-[20px] md:text-[26px] font-bold font-display tracking-tight uppercase">Admin Panel</h1>
         </div>
-        <button onClick={() => window.location.reload()} className="p-3 hover:bg-white/10 rounded-2xl transition-all group active:scale-95 bg-white/5 border border-white/10">
-          <RefreshCw size={24} className="group-hover:rotate-180 transition-transform duration-700" />
+        <button onClick={() => window.location.reload()} className="p-2 md:p-3 hover:bg-white/10 rounded-xl md:rounded-2xl transition-all group active:scale-95 bg-white/5 border border-white/10">
+          <RefreshCw size={20} className="group-hover:rotate-180 transition-transform duration-700" />
         </button>
       </div>
 
       {/* Main Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Elite Sub-Nav (Left Rail) */}
-        <div className="w-[260px] bg-white border-r border-wa-separator flex flex-col p-4 gap-2 shadow-sm z-0">
-          <p className="text-[11px] font-black text-wa-text-secondary uppercase tracking-widest mb-2 px-2">Dashboard</p>
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Elite Sub-Nav (Left Rail / Top Row on Mobile) */}
+        <div className="w-full md:w-[260px] bg-white border-b md:border-b-0 md:border-r border-wa-separator flex flex-row md:flex-col p-2 md:p-4 gap-2 overflow-x-auto md:overflow-x-hidden shadow-sm z-0">
+          <p className="hidden md:block text-[11px] font-black text-wa-text-secondary uppercase tracking-widest mb-2 px-2">Dashboard</p>
           <NavTab active={adminTab === 'overview'} onClick={() => setAdminTab('overview')} label="Overview" icon={<LayoutDashboard size={20} />} />
-          <NavTab active={adminTab === 'verify'} onClick={() => setAdminTab('verify')} label="Identity Verification" icon={<ShieldCheck size={20} />} />
-          <NavTab active={adminTab === 'manage'} onClick={() => setAdminTab('manage')} label="User Management" icon={<Users size={20} />} />
-          <NavTab active={adminTab === 'broadcast'} onClick={() => setAdminTab('broadcast')} label="Global Broadcast" icon={<Megaphone size={20} />} />
-          <div className="mt-auto border-t pt-4 px-2">
-            <p className="text-[12px] text-wa-text-secondary font-medium">Node ID: <span className="text-wa-primary font-bold">ADM-01</span></p>
-          </div>
+          <NavTab active={adminTab === 'verify'} onClick={() => setAdminTab('verify')} label="KYC" icon={<ShieldCheck size={20} />} />
+          <NavTab active={adminTab === 'manage'} onClick={() => setAdminTab('manage')} label="Users" icon={<Users size={20} />} />
+          <NavTab active={adminTab === 'broadcast'} onClick={() => setAdminTab('broadcast')} label="Pulse" icon={<Megaphone size={20} />} />
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 bg-[#f8fbff] scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#f8fbff] scroll-smooth">
           <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-wa-primary"></div></div>}>
               <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {adminTab === 'overview' && <AdminOverview />}
                 {adminTab === 'verify' && <AdminKYC />}
                 {adminTab === 'manage' && <AdminUserManagement onStartChat={startChatWithUser} />}
+                {/* Broadcast Section */}
                 {adminTab === 'broadcast' && (
-                  <div className="bg-white p-10 rounded-[32px] shadow-2xl border border-wa-separator space-y-8 relative overflow-hidden group">
+                  <div className="bg-white p-6 md:p-10 rounded-[24px] md:rounded-[32px] shadow-2xl border border-wa-separator space-y-6 md:space-y-8 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform duration-1000">
                       <Megaphone size={240} />
                     </div>
@@ -105,10 +103,10 @@ function NavTab({ active, onClick, label, icon }: any) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-4 px-4 py-4 rounded-2xl text-[15px] font-bold transition-all ${active ? 'bg-wa-primary text-white shadow-xl shadow-wa-primary/20 scale-[1.02]' : 'bg-transparent text-wa-text-secondary hover:bg-wa-bg-input'}`}
+      className={`flex items-center gap-2 md:gap-4 px-3 md:px-4 py-2 md:py-4 rounded-xl md:rounded-2xl text-[13px] md:text-[15px] font-bold transition-all whitespace-nowrap ${active ? 'bg-wa-primary text-white shadow-xl shadow-wa-primary/20 scale-[1.02]' : 'bg-transparent text-wa-text-secondary hover:bg-wa-bg-input'}`}
     >
       <span className={active ? 'text-white' : 'text-wa-primary'}>{icon}</span>
-      {label}
+      <span className="hidden sm:inline">{label}</span>
     </button>
   )
 }

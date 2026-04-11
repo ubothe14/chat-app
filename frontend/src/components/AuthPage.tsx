@@ -122,10 +122,82 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
         .auth-submit:active { transform: translateY(0); }
         .auth-link { background:none; border:none; cursor:pointer; font-family:inherit; color:#2979ff; font-weight:600; font-size:13px; padding:0; }
         .auth-link:hover { text-decoration: underline; }
+
+        .auth-card {
+          display: flex;
+          width: 100%;
+          max-width: 750px;
+          border-radius: 24px;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          box-shadow: 0 24px 72px rgba(15,116,255,0.12);
+        }
+
+        .auth-left {
+          width: 42%;
+          flex-shrink: 0;
+          background: linear-gradient(170deg,#3d8eff 0%,#1a6ef5 45%,#0d47d4 100%);
+          padding: 32px 28px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .auth-right {
+          flex: 1;
+          padding: 24px 32px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+          .auth-card {
+            flex-direction: column;
+            max-width: 450px;
+            max-height: 90vh;
+            border-radius: 20px;
+          }
+          .auth-left {
+            width: 100%;
+            padding: 20px 24px;
+            min-height: 140px;
+            justify-content: center;
+          }
+          .auth-left h1 {
+            font-size: 24px !important;
+            margin-top: 10px !important;
+          }
+          .auth-left p, .auth-left div:last-child {
+            display: none;
+          }
+          .auth-right {
+            padding: 24px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .auth-card {
+            max-width: 100%;
+            height: 100%;
+            max-height: 100%;
+            border-radius: 0;
+            border: none;
+          }
+          .auth-wrapper {
+            padding: 0 !important;
+          }
+        }
       `}</style>
 
       {/* position:fixed fills the entire viewport regardless of parent layout */}
-      <div style={{
+      <div className="auth-wrapper" style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         background: 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -133,25 +205,10 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}>
         {/* Card */}
-        <div style={{
-          display: 'flex', width: '100%', maxWidth: '750px',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          background: 'rgba(255, 255, 255, 0.75)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255, 255, 255, 0.8)',
-          boxShadow: '0 24px 72px rgba(15,116,255,0.12)',
-        }}>
+        <div className="auth-card">
 
           {/* ══ LEFT BLUE PANEL ══ */}
-          <div style={{
-            width: '42%', flexShrink: 0,
-            background: 'linear-gradient(170deg,#3d8eff 0%,#1a6ef5 45%,#0d47d4 100%)',
-            padding: '32px 28px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            position: 'relative', overflow: 'hidden',
-          }}>
+          <div className="auth-left">
             <div style={{ position:'absolute',top:'-64px',right:'-64px',width:'230px',height:'230px',borderRadius:'50%',background:'rgba(255,255,255,0.08)',pointerEvents:'none' }} />
             <div style={{ position:'absolute',top:'34%',right:'-52px',width:'190px',height:'190px',borderRadius:'50%',background:'rgba(255,255,255,0.055)',pointerEvents:'none' }} />
             <div style={{ position:'absolute',bottom:'-44px',left:'-36px',width:'150px',height:'150px',borderRadius:'50%',background:'rgba(255,255,255,0.04)',pointerEvents:'none' }} />
@@ -189,12 +246,7 @@ export default function AuthPage({ mode, registeredUser, onModeChange, onLogin, 
           </div>
 
           {/* ══ RIGHT WHITE PANEL ══ */}
-          <div style={{
-            flex: 1, background: 'transparent',
-            padding: '24px 32px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            overflowY: 'auto',
-          }}>
+          <div className="auth-right">
 
             {/* Tab switcher — BOTH wired to switchMode */}
             <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'12px' }}>
