@@ -1,4 +1,5 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 import User from '../models/User.js'
