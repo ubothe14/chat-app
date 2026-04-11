@@ -377,7 +377,7 @@ function App() {
   }
 
   const MainLayout = (
-    <div className="flex h-screen bg-transparent overflow-hidden">
+    <div className="flex h-[100dvh] bg-transparent overflow-hidden">
       {isAuthenticated && registeredUser && !registeredUser.phone && (
         <CompleteProfileModal
           userId={currentUserId || ''}
@@ -453,7 +453,7 @@ function App() {
   )
 
   return (
-    <div className="h-screen w-screen bg-transparent font-wa antialiased overflow-hidden flex flex-col relative">
+    <div className="h-[100dvh] w-screen bg-transparent font-wa antialiased overflow-hidden flex flex-col relative">
       <div className="bg-blobs absolute inset-0 pointer-events-none" />
       {incomingCall && (
         <CallOverlay 
