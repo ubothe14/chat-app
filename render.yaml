@@ -3,7 +3,7 @@ services:
   - type: web
     name: socialize-backend
     runtime: node
-    plan: free # Can be changed to pro if needed
+    plan: free
     rootDir: backend
     buildCommand: npm install
     startCommand: npm start
@@ -13,32 +13,32 @@ services:
       - key: PORT
         value: 5006
       - key: MONGODB_URI
-        sync: false # User will provide in dashboard
+        sync: false
       - key: JWT_SECRET
-        generateValue: true # Render will generate a random secret
+        generateValue: true
       - key: GOOGLE_CLIENT_ID
-        sync: false # User will provide
+        sync: false
       - key: STREAM_API_KEY
-        sync: false # User will provide
+        sync: false
       - key: STREAM_SECRET
-        sync: false # User will provide
+        sync: false
       - key: FRONTEND_URL
-        sync: false # User will provide (e.g., https://socialize-chat.onrender.com)
+        sync: false
 
   # Frontend Static Site
-  - type: static
+  - type: web
     name: socialize-frontend
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
-    publishDir: dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        sync: false # User will provide (e.g., https://socialize-backend.onrender.com/api)
+        sync: false
       - key: VITE_GOOGLE_CLIENT_ID
-        sync: false # User will provide
+        sync: false
       - key: VITE_STREAM_API_KEY
-        sync: false # User will provide
+        sync: false
     routes:
       - type: rewrite
         src: /*
