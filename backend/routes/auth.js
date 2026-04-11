@@ -126,6 +126,7 @@ router.post('/login', async (req, res) => {
 router.post('/google-signin', async (req, res) => {
   try {
     const { idToken } = req.body
+    console.log(`📡 [Auth] Google Sign-In request received. Token present: ${!!idToken}`)
 
     if (!idToken) {
       console.error('❌ Google Sign-In failed: No ID Token provided')

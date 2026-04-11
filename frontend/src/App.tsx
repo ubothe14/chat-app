@@ -274,14 +274,26 @@ function App() {
     setIsLoading(true)
     setError(null)
     console.log('🚀 [Debug] Starting Google Sign-In backend verification...')
+
+    // Safety timeout: if backend doesn't respond in 15s, stop loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false)
+        console.warn('⚠️ [Debug] Google Sign-In timed out after 15s')
+        setError('Connection timed out. The backend might be starting up—please try again after a moment.')
+      }
+    }, 15000)
+
     try {
       const result = await authAPI.googleSignIn(token)
+      clearTimeout(timeoutId)
       console.log('✅ [Debug] Google Sign-In response received:', result)
       tokenManager.setToken(result.token)
       setRegisteredUser(result.user)
       setCurrentUserId(result.user._id || result.user.id || null)
       setIsAuthenticated(true)
     } catch (err: any) {
+      clearTimeout(timeoutId)
       console.error('❌ [Debug] Google Sign-In backend error:', err)
       setError(err.message || 'Google Sign-In failed')
     } finally {

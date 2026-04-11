@@ -46,15 +46,29 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://localhost:4173',
   'http://127.0.0.1:4173',
-].filter(Boolean)
+].filter(Boolean).map(o => o.replace(/\/$/, '')) // Remove trailing slashes
+
+// Security & Header configuration
+app.use((req, res, next) => {
+  // Required for Google Sign-In communication between popup and opener
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
+    // If no origin (e.g. server-to-server), allow it
+    if (!origin) return callback(null, true);
+    
+    // Normalize origins by removing trailing slashes for comparison
+    const cleanOrigin = origin.replace(/\/$/, '');
+    const isAllowed = allowedOrigins.some(o => o.toLowerCase() === cleanOrigin.toLowerCase());
+    
+    if (isAllowed) {
+      callback(null, true);
     } else {
-      console.warn(`Blocked by CORS: ${origin}`)
-      callback(new Error(`CORS origin not allowed: ${origin}`))
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      callback(new Error(`CORS origin not allowed: ${origin}`));
     }
   },
   credentials: true,
