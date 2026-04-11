@@ -431,7 +431,7 @@ export default function ChatWindow({
       // Actually, better to join only when accepted or just join and let the overlay cover it.
       // Let's join and let the overlay manage the view.
       await call.join()
-      setActiveCall(call)
+      setActiveCall?.(call)
 
     } catch (err: any) {
       console.error('❌ Call initiation failed:', err)
@@ -800,7 +800,7 @@ export default function ChatWindow({
            <StreamTheme>
              <StreamCall call={activeCall}>
                <SpeakerLayout />
-               <CallControls onLeave={() => setActiveCall(null)} />
+               <CallControls onLeave={() => setActiveCall?.(null)} />
              </StreamCall>
            </StreamTheme>
         </div>
