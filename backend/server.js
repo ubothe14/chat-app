@@ -1,6 +1,6 @@
-// Final restart after successful Atlas connection
 import 'dotenv/config'
 import express from 'express'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import cors from 'cors'
@@ -13,6 +13,15 @@ import chatRoutes from './routes/chat.js'
 import videoRoutes from './routes/video.js'
 
 const app = express()
+
+// Ensure upload directories exist
+const uploadDirs = ['uploads', 'uploads/documents', 'uploads/avatars'];
+uploadDirs.forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`📁 Created directory: ${dir}`);
+  }
+});
 
 // ─── STABLE CORS CONFIGURATION ───
 app.use(cors({
