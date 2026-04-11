@@ -200,14 +200,14 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   useEffect(() => {
     if (!showNewChat) return
     if (!newChatSearch.trim()) {
-      setSearchResults(allUsers)
+      setSearchResults(discoveryUsers)
       return
     }
     const query = newChatSearch.toLowerCase()
-    setSearchResults(allUsers.filter((u: User) =>
+    setSearchResults(discoveryUsers.filter((u: User) =>
       (u.name || '').toLowerCase().includes(query) || (u.email || '').toLowerCase().includes(query)
     ))
-  }, [newChatSearch, allUsers, showNewChat])
+  }, [newChatSearch, discoveryUsers, showNewChat])
 
   async function startConversation(recipientId: string) {
     try {
@@ -451,11 +451,11 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   }
 
   const renderNewChatPane = () => {
-    const selfUser = searchResults.find(u => (u._id || u.id) === currentUserId)
-    const otherUsers = searchResults.filter(u => (u._id || u.id) !== currentUserId)
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    const selfUser = searchResults.find((u: User) => (u._id || u.id) === currentUserId)
+    const otherUsers = searchResults.filter((u: User) => (u._id || u.id) !== currentUserId)
+      .sort((a: User, b: User) => (a.name || '').localeCompare(b.name || ''))
 
-    const groupedUsers = otherUsers.reduce((acc, u) => {
+    const groupedUsers = otherUsers.reduce((acc: Record<string, User[]>, u: User) => {
       const char = (u.name?.[0] || '#').toUpperCase()
       if (!acc[char]) acc[char] = []
       acc[char].push(u)
@@ -490,7 +490,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-wa">
-          {loadingUsers ? (
+          {loadingDiscovery ? (
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wa-primary"></div>
             </div>
@@ -550,10 +550,10 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   }
 
   const renderNewGroupPane = () => {
-    const otherUsers = allUsers.filter(u => (u._id || u.id) !== currentUserId)
-      .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    const otherUsers = discoveryUsers.filter((u: User) => (u._id || u.id) !== currentUserId)
+      .sort((a: User, b: User) => (a.name || '').localeCompare(b.name || ''))
 
-    const groupedUsers = otherUsers.reduce((acc, u) => {
+    const groupedUsers = otherUsers.reduce((acc: Record<string, User[]>, u: User) => {
       const char = (u.name?.[0] || '#').toUpperCase()
       if (!acc[char]) acc[char] = []
       acc[char].push(u)
@@ -597,7 +597,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                 <div key={char}>
                   <div className="h-[40px] flex items-center px-[24px] text-wa-primary font-bold text-[14px] bg-white sticky top-0 z-10">{char}</div>
                   <div className="flex flex-col gap-[4px]">
-                    {groupedUsers[char].map(u => {
+                    {groupedUsers[char].map((u: User) => {
                       const isSelected = selectedGroupMembers.some(sm => (sm._id || sm.id) === (u._id || u.id))
                       return (
                         <button key={u._id} onClick={() => toggleMemberSelection(u)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
