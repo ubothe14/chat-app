@@ -213,25 +213,27 @@ export default function AdminOverview() {
 
 function StatCard({ label, value, icon, trend, sub, color = 'text-wa-primary' }: any) {
   return (
-    <div className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-lg border border-[#d1dce5] group hover:border-wa-primary transition-all duration-500 cursor-default relative overflow-hidden h-full">
-      <div className="absolute top-0 right-0 w-24 h-24 bg-wa-primary/5 rounded-full blur-3xl group-hover:bg-wa-primary/10 transition-all" />
+    <div className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-lg border border-[#d1dce5] group hover:border-wa-primary transition-all duration-500 cursor-default relative overflow-hidden h-full flex flex-col">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-wa-primary/5 rounded-full blur-3xl group-hover:bg-wa-primary/10 transition-all pointer-events-none" />
       
-      <div className="flex justify-between items-start mb-6 relative z-10">
-        <div className="p-3 bg-wa-bg-input rounded-2xl group-hover:bg-wa-primary group-hover:text-white transition-all duration-300">
-          {icon}
+      <div className="flex justify-between items-center mb-6 relative z-10">
+        <div className="w-12 h-12 flex items-center justify-center bg-wa-bg-input rounded-2xl group-hover:bg-wa-primary group-hover:text-white transition-all duration-300">
+          <div className="flex-shrink-0">
+            {icon}
+          </div>
         </div>
         {trend && (
-          <div className="flex items-center gap-1 bg-wa-primary/10 text-wa-primary text-[11px] font-black px-3 py-1 rounded-full border border-wa-primary/10">
+          <div className="flex items-center gap-1.5 bg-wa-primary/10 text-wa-primary text-[11px] font-black px-3.5 py-1.5 rounded-full border border-wa-primary/10">
             <TrendingUp size={10} />
             {trend}
           </div>
         )}
       </div>
       
-      <div className="relative z-10">
-        <p className="text-wa-text-secondary text-[11px] font-black uppercase tracking-[0.15em] mb-1 opacity-60">{label}</p>
-        <p className={`text-[28px] font-black tracking-tighter ${color} mb-1`}>{value ?? '-'}</p>
-        <p className="text-[11px] text-wa-text-secondary font-medium italic opacity-70">{sub}</p>
+      <div className="relative z-10 flex-1 flex flex-col justify-end">
+        <p className="text-wa-text-secondary text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 opacity-50">{label}</p>
+        <p className={`text-[32px] font-black tracking-tighter ${color} leading-none mb-1.5`}>{value ?? '-'}</p>
+        <p className="text-[11px] text-wa-text-secondary font-bold opacity-60 italic">{sub}</p>
       </div>
     </div>
   );
@@ -240,24 +242,24 @@ function StatCard({ label, value, icon, trend, sub, color = 'text-wa-primary' }:
 function HealthRow({ label, value, icon, progress }: any) {
   return (
     <div className="space-y-4">
-      <div className="flex justify-between text-[14px] items-end">
-        <div className="flex items-center gap-3 text-wa-text-primary font-bold">
-          <div className="p-1.5 bg-white rounded-lg border border-wa-separator shadow-sm">
+      <div className="flex justify-between text-[14px] items-center">
+        <div className="flex items-center gap-4 text-wa-text-primary font-bold">
+          <div className="w-9 h-9 flex items-center justify-center bg-white rounded-xl border border-wa-separator shadow-sm flex-shrink-0">
             {icon}
           </div>
-          {label}
+          <span className="text-[15px] tracking-tight">{label}</span>
         </div>
         <div className="text-right">
-          <span className="font-mono text-wa-primary font-black text-[15px]">{value}</span>
+          <span className="font-mono text-wa-primary font-black text-[16px]">{value}</span>
         </div>
       </div>
       {progress !== undefined && (
-        <div className="h-3 w-full bg-[#e2e8f0] rounded-full overflow-hidden p-0.5 border border-[#d1dce5] shadow-inner">
+        <div className="h-3 w-full bg-[#f1f5f9] rounded-full overflow-hidden p-0.5 border border-[#e2e8f0] shadow-inner">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${Math.min(progress, 100)}%` }}
             transition={{ duration: 1.5, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-wa-primary to-wa-primary-dark rounded-full shadow-[0_0_10px_rgba(0,128,105,0.3)]" 
+            className="h-full bg-gradient-to-r from-wa-primary to-blue-500 rounded-full shadow-[0_0_15px_rgba(15,116,255,0.3)]" 
           />
         </div>
       )}

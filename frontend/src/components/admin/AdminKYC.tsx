@@ -41,84 +41,101 @@ export default function AdminKYC() {
   );
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-10 pb-10">
       <div className="flex items-center justify-between px-2">
         <div>
-          <h3 className="text-[18px] font-black text-wa-text-primary uppercase tracking-tight">Identity Gallery</h3>
-          <p className="text-[11px] text-wa-text-secondary font-bold uppercase tracking-widest opacity-60">Manual Validation Queue</p>
+          <h3 className="text-[22px] md:text-[26px] font-black text-wa-text-primary uppercase tracking-tight leading-none">Identity Gallery</h3>
+          <p className="text-[11px] text-wa-text-secondary/50 font-black uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-wa-primary rounded-full" />
+            Manual Validation Queue
+          </p>
         </div>
-        <div className="flex items-center gap-2 bg-wa-primary/5 px-4 py-2 rounded-2xl border border-wa-primary/10 shadow-sm">
-          <div className="w-2 h-2 bg-wa-primary rounded-full animate-pulse" />
-          <span className="text-wa-primary text-[12px] font-black">{pendingUsers.length} PENDING</span>
+        <div className="flex items-center gap-3 bg-wa-primary/5 px-6 py-3 rounded-2xl border border-wa-primary/10 shadow-sm transition-all hover:bg-wa-primary/10">
+          <div className="w-2.5 h-2.5 bg-wa-primary rounded-full animate-pulse" />
+          <span className="text-wa-primary text-[13px] font-black uppercase tracking-widest">{pendingUsers.length} Pending Nodes</span>
         </div>
       </div>
 
       <AnimatePresence mode="popLayout">
         {pendingUsers.length === 0 ? (
           <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.98, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white/60 backdrop-blur-md p-16 rounded-[40px] border border-[#d1dce5] text-center shadow-inner"
+            className="bg-white/60 backdrop-blur-md p-20 rounded-[48px] border border-[#d1dce5] text-center shadow-inner relative overflow-hidden"
           >
-              <div className="w-24 h-24 bg-wa-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ShieldCheck size={48} className="text-wa-primary opacity-40" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-wa-primary to-blue-400 opacity-20" />
+              <div className="w-28 h-28 bg-wa-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+                <ShieldCheck size={56} className="text-wa-primary opacity-40" />
               </div>
-              <h4 className="text-[20px] font-black text-wa-text-primary mb-2">Network Fully Integrated</h4>
-              <p className="text-wa-text-secondary text-[14px] max-w-sm mx-auto leading-relaxed opacity-70">All identity verification requests have been processed. Node integrity is at 100%.</p>
+              <h4 className="text-[24px] font-black text-wa-text-primary mb-3 uppercase tracking-tight">Network Fully Integrated</h4>
+              <p className="text-wa-text-secondary text-[15px] max-w-sm mx-auto leading-relaxed font-medium opacity-60">All identity verification requests have been processed. Node integrity is currently at 100%.</p>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {pendingUsers.map((user, idx) => (
               <motion.div 
                 key={user._id} 
                 layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ delay: idx * 0.05, type: "spring" as const, stiffness: 100 }}
-                className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-xl border border-[#d1dce5] group hover:border-wa-primary transition-all duration-500 overflow-hidden relative"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: idx * 0.05, type: "spring", stiffness: 100 }}
+                className="bg-white p-8 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.05)] border border-[#d1dce5] group hover:border-wa-primary/40 hover:shadow-[0_25px_80px_rgba(0,0,0,0.08)] transition-all duration-500 overflow-hidden relative"
               >
-                <div className="flex items-start gap-5 relative z-10">
-                  <div className="w-16 h-16 rounded-3xl overflow-hidden flex-shrink-0 bg-wa-bg-input shadow-inner border border-wa-separator">
-                    {user.avatar ? <img src={getFullImageUrl(user.avatar) || ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted"><FileSearch size={32} /></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-black text-wa-text-primary text-[17px] truncate tracking-tight">{user.name}</h4>
-                      <div className="h-1.5 w-1.5 rounded-full bg-wa-primary" />
+                <div className="flex flex-col gap-6 relative z-10">
+                  <div className="flex items-center gap-5">
+                    <div className="w-20 h-20 rounded-[28px] overflow-hidden flex-shrink-0 bg-[#f8fafc] shadow-inner border border-wa-separator group-hover:border-wa-primary/20 transition-colors">
+                      {user.avatar ? <img src={getFullImageUrl(user.avatar) || ''} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted bg-wa-primary/5"><FileSearch size={36} /></div>}
                     </div>
-                    <p className="text-[12px] text-wa-text-secondary font-medium truncate mb-6 opacity-70">{user.email}</p>
-                    
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-black text-wa-text-primary text-[20px] truncate tracking-tight mb-1">{user.name}</h4>
+                      <div className="flex items-center gap-2">
+                         <div className="w-2 h-2 rounded-full bg-wa-primary animate-pulse" />
+                         <p className="text-[12px] text-wa-text-secondary font-bold uppercase tracking-widest opacity-40">User Node</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-[#f8fafc] rounded-2xl border border-wa-separator/40">
+                      <p className="text-[10px] font-black text-wa-text-secondary/40 uppercase tracking-[0.2em] mb-1">Transmission Address</p>
+                      <p className="text-[14px] font-bold text-wa-text-primary truncate">{user.email}</p>
+                    </div>
+
                     <div className="flex gap-3">
                       <button 
                         onClick={() => {
                           const path = getFullImageUrl(user.idDocumentPath);
                           setPreviewImage(path);
                         }}
-                        className="flex-1 py-3 bg-wa-bg-input hover:bg-wa-primary hover:text-white rounded-[16px] text-[13px] font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-sm"
+                        className="flex-1 py-4 bg-wa-bg-input hover:bg-wa-primary hover:text-white rounded-[20px] text-[13px] font-black flex items-center justify-center gap-2 transition-all duration-300 active:scale-95 shadow-sm group/analyze"
                       >
-                        <ImageIcon size={16} />
+                        <ImageIcon size={18} className="group-hover/analyze:rotate-12 transition-transform" />
                         Analyze ID
                       </button>
-                      <button 
-                        onClick={() => handleVerify(user._id!, 'approve')}
-                        className="w-[50px] bg-wa-primary text-white rounded-[16px] flex items-center justify-center hover:shadow-[0_10px_20px_rgba(0,128,105,0.3)] transition-all duration-300 active:scale-95 group/check"
-                      >
-                        <CheckCircle size={20} className="group-hover/check:scale-110 transition-transform" />
-                      </button>
-                      <button 
-                        onClick={() => handleVerify(user._id!, 'reject')}
-                        className="w-[50px] bg-red-500 text-white rounded-[16px] flex items-center justify-center hover:shadow-[0_10px_20px_rgba(239,68,68,0.3)] transition-all duration-300 active:scale-95 group/x"
-                      >
-                        <XCircle size={20} className="group-hover/x:scale-110 transition-transform" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleVerify(user._id!, 'approve')}
+                          className="w-14 h-14 bg-wa-primary text-white rounded-[20px] flex items-center justify-center hover:shadow-[0_15px_30px_rgba(0,128,105,0.3)] transition-all duration-300 active:scale-95 group/check"
+                          title="Approve"
+                        >
+                          <CheckCircle size={24} className="group-hover/check:scale-110 transition-transform" />
+                        </button>
+                        <button 
+                          onClick={() => handleVerify(user._id!, 'reject')}
+                          className="w-14 h-14 bg-red-500 text-white rounded-[20px] flex items-center justify-center hover:shadow-[0_15px_30px_rgba(239,68,68,0.3)] transition-all duration-300 active:scale-95 group/x"
+                          title="Reject"
+                        >
+                          <XCircle size={24} className="group-hover/x:scale-110 transition-transform" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
                 
                 {/* Decorative Elements */}
-                <div className="absolute -bottom-6 -right-6 text-wa-primary opacity-[0.03] group-hover:rotate-12 transition-transform duration-700">
-                    <ShieldCheck size={120} />
+                <div className="absolute -bottom-10 -right-10 text-wa-primary opacity-[0.02] group-hover:rotate-12 transition-transform duration-1000">
+                    <ShieldCheck size={200} />
                 </div>
               </motion.div>
             ))}

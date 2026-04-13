@@ -59,101 +59,104 @@ export default function AdminUserManagement({ onStartChat }: AdminUserManagement
   );
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-10 pb-10">
       <motion.div 
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-white/80 backdrop-blur-md p-4 rounded-[28px] shadow-lg border border-[#d1dce5] flex items-center gap-4 group focus-within:border-wa-primary/40 transition-all duration-300"
+        className="bg-white/90 backdrop-blur-xl p-5 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-[#d1dce5] flex items-center gap-6 group focus-within:border-wa-primary/40 transition-all duration-300"
       >
-        <div className="p-2 bg-wa-bg-input rounded-xl group-focus-within:bg-wa-primary/10 transition-colors">
-          <Search size={20} className="text-wa-text-muted group-focus-within:text-wa-primary transition-colors" />
+        <div className="w-14 h-14 flex items-center justify-center bg-wa-bg-input rounded-2xl group-focus-within:bg-wa-primary/10 transition-colors">
+          <Search size={24} className="text-wa-text-muted group-focus-within:text-wa-primary transition-colors" />
         </div>
         <input 
           type="text" 
           placeholder="Search by name, email or pulse ID..." 
-          className="flex-1 bg-transparent border-none focus:outline-none text-[16px] font-medium placeholder:text-wa-text-muted/50"
+          className="flex-1 bg-transparent border-none focus:outline-none text-[18px] font-bold placeholder:text-wa-text-muted/30"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-wa-bg-input rounded-lg border border-wa-separator">
-           <Hash size={12} className="text-wa-text-secondary" />
-           <span className="text-[11px] font-black text-wa-text-secondary uppercase">{filteredUsers.length} Results</span>
+        <div className="hidden md:flex items-center gap-3 px-5 py-2 bg-wa-bg-input rounded-xl border border-wa-separator/40">
+           <Hash size={14} className="text-wa-text-secondary opacity-40" />
+           <span className="text-[12px] font-black text-wa-text-secondary uppercase tracking-widest">{filteredUsers.length} Operational Nodes</span>
         </div>
       </motion.div>
 
       <div className="flex items-center justify-between px-2">
         <div>
-          <h3 className="text-[18px] font-black text-wa-text-primary uppercase tracking-tight">User Operations</h3>
-          <p className="text-[11px] text-wa-text-secondary font-bold uppercase tracking-widest opacity-60">Global Directory Control</p>
+          <h3 className="text-[22px] md:text-[26px] font-black text-wa-text-primary uppercase tracking-tight leading-none">User Operations</h3>
+          <p className="text-[11px] text-wa-text-secondary/50 font-black uppercase tracking-[0.3em] mt-2 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-wa-primary rounded-full" />
+            Global Directory Control
+          </p>
         </div>
         <div className="flex items-center gap-2">
-           <div className="p-2 bg-white rounded-xl shadow-sm border border-wa-separator">
-              <Activity size={16} className="text-wa-primary" />
+           <div className="p-3 bg-white rounded-2xl shadow-sm border border-wa-separator/40">
+              <Activity size={20} className="text-wa-primary animate-pulse" />
            </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-6">
         <AnimatePresence mode="popLayout">
           {filteredUsers.map((user, idx) => (
             <motion.div 
               key={user._id} 
               layout
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ delay: idx * 0.03 }}
-              className="bg-white/80 backdrop-blur-md p-6 rounded-[32px] shadow-xl border border-[#d1dce5] group hover:border-wa-primary/30 transition-all duration-500 relative overflow-hidden"
+              className="bg-white p-8 rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-[#d1dce5] group hover:border-wa-primary/30 hover:shadow-[0_25px_80px_rgba(0,0,0,0.06)] transition-all duration-500 relative overflow-hidden"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center gap-6 relative z-10">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-8 relative z-10">
                  <div className="relative flex-shrink-0">
-                    <div className="w-16 h-16 rounded-[24px] overflow-hidden bg-wa-bg-input border border-wa-separator shadow-inner">
-                       {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted"><ShieldCheck size={32} /></div>}
+                    <div className="w-20 h-20 rounded-[30px] overflow-hidden bg-[#f8fafc] border border-wa-separator shadow-inner group-hover:border-wa-primary/20 transition-colors">
+                       {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-wa-text-muted bg-wa-primary/5"><ShieldCheck size={36} /></div>}
                     </div>
                     <motion.div 
                       initial={false}
                       animate={{ scale: user.isActive ? 1 : 1.2 }}
-                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white shadow-sm ${user.isActive ? 'bg-wa-primary' : 'bg-red-500'}`} 
+                      className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white shadow-md ${user.isActive ? 'bg-wa-primary' : 'bg-red-500'}`} 
                     />
                  </div>
 
                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h4 className="font-black text-wa-text-primary text-[19px] tracking-tight truncate">{user.name}</h4>
+                    <div className="flex items-center gap-4 mb-2">
+                      <h4 className="font-black text-wa-text-primary text-[22px] tracking-tight truncate leading-tight">{user.name}</h4>
                       {user.role === 'admin' ? (
-                        <span className="bg-wa-primary text-white text-[10px] font-black uppercase px-2 py-1 rounded-lg tracking-widest shadow-sm shadow-wa-primary/20">ADMIN</span>
+                        <span className="bg-wa-primary text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-[0.2em] shadow-lg shadow-wa-primary/20">ADMIN HUB</span>
                       ) : (
-                        <span className="bg-wa-text-secondary/10 text-wa-text-secondary text-[10px] font-black uppercase px-2 py-1 rounded-lg tracking-widest">BASE USER</span>
+                        <span className="bg-wa-bg-input text-wa-text-secondary text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-[0.2em]">BASE NODE</span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                       <div className="flex items-center gap-2 text-[13px] text-wa-text-secondary font-medium">
-                          <Mail size={14} className="opacity-40" />
+                    <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+                       <div className="flex items-center gap-2.5 text-[14px] text-wa-text-secondary font-bold">
+                          <Mail size={16} className="opacity-30" />
                           {user.email}
                        </div>
                        {user.verificationStatus === 'verified' && (
-                         <div className="flex items-center gap-1.5 text-[13px] text-wa-primary font-bold">
+                         <div className="flex items-center gap-2 text-[14px] text-wa-primary font-black uppercase tracking-widest bg-wa-primary/5 px-3 py-1 rounded-full border border-wa-primary/10">
                             <ShieldCheck size={14} />
-                            Trust Level 1
+                            Verified
                          </div>
                        )}
                     </div>
                  </div>
 
-                 <div className="flex gap-3 lg:w-[420px]">
+                 <div className="flex gap-4 lg:w-[460px]">
                     <ActionButton 
-                       icon={<MessageSquare size={18} />} 
+                       icon={<MessageSquare size={20} />} 
                        label="Transmit" 
                        onClick={() => onStartChat(user._id!)} 
                        variant="primary"
                     />
                     <ActionButton 
-                       icon={user.role === 'admin' ? <UserMinus size={18} /> : <UserPlus size={18} />} 
+                       icon={user.role === 'admin' ? <UserMinus size={20} /> : <UserPlus size={20} />} 
                        label={user.role === 'admin' ? 'Demote' : 'Promote'} 
                        onClick={() => toggleUserRole(user)}
                     />
                     <ActionButton 
-                       icon={user.isActive ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />} 
+                       icon={user.isActive ? <ShieldAlert size={20} /> : <ShieldCheck size={20} />} 
                        label={user.isActive ? 'Freeze' : 'Restore'} 
                        onClick={() => toggleUserStatus(user)}
                        variant={user.isActive ? 'danger' : 'success'}
