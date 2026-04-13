@@ -93,18 +93,22 @@ export default function AdminPanel({ onExit }: { onExit?: () => void }) {
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="w-full md:w-[300px] bg-white/90 backdrop-blur-2xl border-b md:border-b-0 md:border-r border-[#d1dce5] flex flex-row md:flex-col p-4 md:p-8 gap-4 overflow-x-auto md:overflow-x-hidden shadow-[15px_0_40px_rgba(0,0,0,0.03)]"
+          className="w-full md:w-[320px] bg-white/90 backdrop-blur-2xl border-b md:border-b-0 md:border-r border-[#d1dce5] flex flex-row md:flex-col p-4 md:p-8 gap-6 overflow-x-auto md:overflow-x-hidden shadow-[15px_0_40px_rgba(0,0,0,0.03)]"
         >
-          <div className="hidden md:block mb-6 px-2">
+          <div className="hidden md:block mb-8 px-2">
             <p className="text-[11px] font-black text-wa-text-secondary/40 uppercase tracking-[0.3em]">Operational Tabs</p>
           </div>
           
-          <NavTab active={adminTab === 'overview'} onClick={() => setAdminTab('overview')} label="Live Insights" icon={<LayoutDashboard size={22} />} />
-          <NavTab active={adminTab === 'verify'} onClick={() => setAdminTab('verify')} label="Identity Gallery" icon={<ShieldCheck size={22} />} />
-          <NavTab active={adminTab === 'manage'} onClick={() => setAdminTab('manage')} label="User Grid" icon={<UsersIcon size={22} />} />
-          <NavTab active={adminTab === 'queries'} onClick={() => setAdminTab('queries')} label="Queries" icon={<LifeBuoy size={22} />} />
-          <div className="hidden md:block h-px w-full bg-wa-separator/40 my-2" />
-          <NavTab active={adminTab === 'broadcast'} onClick={() => setAdminTab('broadcast')} label="Global Pulse" icon={<Megaphone size={22} />} />
+          <div className="flex flex-col gap-5 w-full">
+            <NavTab active={adminTab === 'overview'} onClick={() => setAdminTab('overview')} label="Live Insights" icon={<LayoutDashboard size={22} />} />
+            <NavTab active={adminTab === 'verify'} onClick={() => setAdminTab('verify')} label="Identity Gallery" icon={<ShieldCheck size={22} />} />
+            <NavTab active={adminTab === 'manage'} onClick={() => setAdminTab('manage')} label="User Grid" icon={<UsersIcon size={22} />} />
+            <NavTab active={adminTab === 'queries'} onClick={() => setAdminTab('queries')} label="Queries" icon={<LifeBuoy size={22} />} />
+            
+            <div className="hidden md:block h-px w-full bg-wa-separator/40 my-6" />
+            
+            <NavTab active={adminTab === 'broadcast'} onClick={() => setAdminTab('broadcast')} label="Global Pulse" icon={<Megaphone size={22} />} />
+          </div>
           
           <div className="hidden md:block mt-auto p-5 bg-wa-primary/5 rounded-[28px] border border-wa-primary/10 group">
               <p className="text-[12px] font-black text-wa-primary uppercase tracking-wider mb-2">Node Environment</p>
@@ -147,50 +151,54 @@ export default function AdminPanel({ onExit }: { onExit?: () => void }) {
                   <motion.div 
                     initial={{ scale: 0.98, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="bg-white p-8 md:p-16 rounded-[48px] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-wa-separator/20 relative overflow-hidden group"
+                    className="bg-white p-8 md:p-14 rounded-[48px] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-wa-separator/20 relative overflow-hidden group min-h-[600px] flex flex-col"
                   >
                     <div className="absolute top-[-50px] right-[-50px] p-10 opacity-[0.03] pointer-events-none group-hover:rotate-12 transition-transform duration-1000">
                       <Megaphone size={400} />
                     </div>
                     
-                    <div className="relative z-10">
-                      <div className="inline-flex items-center gap-3 px-5 py-2 bg-red-50 text-red-600 rounded-full text-[11px] font-black uppercase tracking-[0.2em] mb-8 border border-red-100">
+                    <div className="relative z-10 flex-1 flex flex-col">
+                      <div className="inline-flex items-center gap-3 px-5 py-2 bg-red-50 text-red-600 rounded-full text-[11px] font-black uppercase tracking-[0.2em] mb-6 border border-red-100">
                         <div className="w-2.5 h-2.5 bg-red-600 rounded-full animate-ping" />
                         Priority Alpha Protocol
                       </div>
                       
-                      <h3 className="text-[32px] md:text-[42px] font-black text-wa-text-primary tracking-tight mb-4 leading-tight">Global Annunciation Terminal</h3>
-                      <p className="text-[17px] text-wa-text-secondary max-w-2xl leading-relaxed mb-12 opacity-80">
+                      <h3 className="text-[32px] md:text-[38px] font-black text-wa-text-primary tracking-tight mb-4 leading-tight">Global Annunciation Terminal</h3>
+                      <p className="text-[15px] text-wa-text-secondary max-w-2xl leading-relaxed mb-10 opacity-70">
                         Initiate a global announcement pulse across all active Socialize connections. 
-                        This action will be permanently logged in the global notification register and pushed to all end-nodes.
+                        Transmission will be push-broadcasted to all reachable network nodes.
                       </p>
                       
-                      <div className="space-y-5">
-                        <div className="relative">
+                      <div className="space-y-8 flex-1">
+                        <div>
+                          <label className="text-[11px] font-black text-wa-text-secondary/40 uppercase tracking-[0.2em] mb-3 block px-1">Transmission Title</label>
                           <input 
                             type="text"
-                            placeholder="Transmission Title (e.g. Critical System Patch)"
-                            className="w-full bg-[#f8fbff] px-10 py-5 rounded-[24px] border border-[#e2e8f0] focus:outline-none focus:ring-8 focus:ring-wa-primary/5 text-[16px] font-black shadow-inner transition-all hover:bg-white"
+                            placeholder="e.g. Critical System Patch v2.0"
+                            className="w-full bg-[#f8fbff] px-8 py-5 rounded-[22px] border border-[#e2e8f0] focus:outline-none focus:ring-8 focus:ring-wa-primary/5 text-[15px] font-black shadow-inner transition-all hover:bg-white"
                             value={broadcastTitle}
                             onChange={(e) => setBroadcastTitle(e.target.value)}
                           />
                         </div>
-                        <textarea 
-                          value={broadcastText}
-                          onChange={(e) => setBroadcastText(e.target.value)}
-                          placeholder="Type your transmission message here..."
-                          className="w-full h-64 p-10 bg-[#f8fbff] rounded-[36px] focus:outline-none focus:ring-8 focus:ring-wa-primary/5 text-[18px] font-medium resize-none transition-all border border-[#e2e8f0] focus:border-wa-primary/40 shadow-inner hover:bg-white"
-                        />
+                        <div className="flex-1 flex flex-col">
+                          <label className="text-[11px] font-black text-wa-text-secondary/40 uppercase tracking-[0.2em] mb-3 block px-1">Transmission Payload</label>
+                          <textarea 
+                            value={broadcastText}
+                            onChange={(e) => setBroadcastText(e.target.value)}
+                            placeholder="Formulate your network-wide message..."
+                            className="w-full h-full min-h-[220px] p-8 bg-[#f8fbff] rounded-[32px] focus:outline-none focus:ring-8 focus:ring-wa-primary/5 text-[16px] font-medium resize-none transition-all border border-[#e2e8f0] focus:border-wa-primary/40 shadow-inner hover:bg-white"
+                          />
+                        </div>
                       </div>
                       
                       <div className="mt-10 flex justify-end">
                         <button 
                           onClick={handleBroadcast}
                           disabled={!broadcastText.trim() || isBroadcasting}
-                          className="px-16 py-6 bg-wa-primary text-white rounded-[28px] font-black text-[18px] shadow-[0_25px_50px_rgba(0,128,105,0.3)] hover:shadow-[0_30px_60px_rgba(0,128,105,0.45)] disabled:opacity-50 transition-all flex items-center gap-5 active:scale-[0.96] group/btn uppercase tracking-widest"
+                          className="px-14 py-5 bg-wa-primary text-white rounded-[24px] font-black text-[16px] shadow-[0_25px_50px_rgba(0,128,105,0.3)] hover:shadow-[0_30px_60px_rgba(0,128,105,0.45)] disabled:opacity-50 transition-all flex items-center gap-5 active:scale-[0.96] group/btn uppercase tracking-widest"
                         >
-                          {isBroadcasting ? <RefreshCw size={28} className="animate-spin" /> : <Send size={28} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />}
-                          {isBroadcasting ? 'Processing...' : 'Activate Pulse'}
+                          {isBroadcasting ? <RefreshCw size={24} className="animate-spin" /> : <Send size={24} className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />}
+                          {isBroadcasting ? 'Disseminating...' : 'Activate Pulse'}
                         </button>
                       </div>
                     </div>

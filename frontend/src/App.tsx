@@ -430,26 +430,28 @@ function App() {
           </div>
         ) : (
           <div className="flex-1 flex h-full w-full overflow-hidden">
+             {/* Primary Vertical Navigation (Always Visible on Desktop) */}
+             {!isMobile && (
+               <SidebarNav 
+                 activeTab={activeNavTab} 
+                 onTabChange={handleTabChange} 
+                 onLogout={handleLogout} 
+                 userRole={registeredUser?.role} 
+                 verificationStatus={registeredUser?.verificationStatus} 
+                 user={registeredUser} 
+               />
+             )}
+
              {activeNavTab === 'admin' ? (
-               /* Admin Command Center Isolation */
+               /* Admin Command Center (Isolated Content) */
                <div className="flex-1 h-full overflow-hidden bg-white/40 backdrop-blur-md">
                  <AdminPanel onExit={() => setActiveNavTab('chats')} />
                </div>
              ) : (
                /* Standard Chat Layout */
                <>
-                 {/* Sidebar Container */}
-                 <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:w-[476px] md:min-w-[476px] md:flex-none overflow-hidden bg-transparent border-r border-wa-separator/10`}>
-                   {!isMobile && (
-                     <SidebarNav 
-                       activeTab={activeNavTab} 
-                       onTabChange={handleTabChange} 
-                       onLogout={handleLogout} 
-                       userRole={registeredUser?.role} 
-                       verificationStatus={registeredUser?.verificationStatus} 
-                       user={registeredUser} 
-                     />
-                   )}
+                 {/* Sidebar (Conversations List) */}
+                 <div className={`${isMobile && showChatOnMobile ? 'hidden' : 'flex'} h-full md:w-[396px] md:min-w-[396px] md:flex-none overflow-hidden bg-transparent border-r border-wa-separator/10`}>
                    <div className="flex-1 h-full overflow-hidden">
                      <Sidebar 
                        conversations={conversations} 
