@@ -214,27 +214,27 @@ export default function AdminOverview() {
 
 function StatCard({ label, value, icon, trend, sub, color = 'text-wa-primary' }: any) {
   return (
-    <div className="bg-white/80 backdrop-blur-md p-8 rounded-[40px] shadow-lg border border-[#d1dce5] group hover:border-wa-primary transition-all duration-500 cursor-default relative overflow-hidden h-full flex flex-col">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-wa-primary/5 rounded-full blur-3xl group-hover:bg-wa-primary/10 transition-all pointer-events-none" />
+    <div className="bg-white/90 backdrop-blur-md p-7 rounded-[38px] shadow-lg border border-[#d1dce5] group hover:border-wa-primary transition-all duration-500 cursor-default relative overflow-hidden h-full flex flex-col justify-between">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-wa-primary/5 rounded-full blur-3xl group-hover:bg-wa-primary/8 transition-all pointer-events-none" />
       
-      <div className="flex justify-between items-start mb-8 relative z-10">
-        <div className={`w-12 h-12 flex items-center justify-center bg-wa-bg-input rounded-2xl group-hover:bg-wa-primary group-hover:text-white transition-all duration-500 ${color.replace('text-', 'text-opacity-90 text-')}`}>
+      <div className="flex justify-between items-start relative z-10 w-full mb-4">
+        <div className={`w-11 h-11 flex items-center justify-center bg-wa-bg-input rounded-2xl group-hover:bg-wa-primary group-hover:text-white transition-all duration-500 ${color.replace('text-', 'text-opacity-90 text-')}`}>
           <div className="flex-shrink-0">
-            {icon}
+             {icon && typeof icon !== 'string' ? { ...icon, props: { ...icon.props, size: 20 } } : icon}
           </div>
         </div>
         {trend && (
-          <div className="flex items-center gap-1.5 bg-wa-primary/10 text-wa-primary text-[10px] font-black px-4 py-1.5 rounded-full border border-wa-primary/10 shadow-sm">
+          <div className="flex items-center gap-1 bg-wa-primary/5 text-wa-primary text-[10px] font-black px-3 py-1.2 rounded-full border border-wa-primary/10 shadow-sm">
             <TrendingUp size={10} />
             {trend}
           </div>
         )}
       </div>
       
-      <div className="relative z-10 flex-1 flex flex-col gap-y-1 justify-center mt-2">
-        <p className="text-wa-text-secondary text-[11px] font-black uppercase tracking-[0.25em] opacity-40">{label}</p>
-        <p className={`text-[28px] font-black tracking-tighter ${color} leading-none mb-1`}>{value ?? '-'}</p>
-        <p className="text-[12px] text-wa-text-secondary font-bold opacity-50 italic leading-tight">{sub}</p>
+      <div className="relative z-10 flex flex-col gap-0.5 mt-auto">
+        <p className="text-wa-text-secondary text-[11px] font-black uppercase tracking-[0.2em] opacity-30 leading-none mb-1">{label}</p>
+        <p className={`text-[25px] font-black tracking-tighter ${color} leading-none mb-1`}>{value ?? '-'}</p>
+        <p className="text-[11px] text-wa-text-secondary font-bold opacity-40 italic leading-tight truncate">{sub}</p>
       </div>
     </div>
   );

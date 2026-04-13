@@ -217,10 +217,10 @@ function NavTab({ active, onClick, label, icon }: any) {
   return (
     <button
       onClick={onClick}
-      className={`relative flex items-center gap-4 px-8 py-5 rounded-[24px] text-[15px] font-black transition-all duration-300 group overflow-hidden ${
+      className={`relative flex items-center gap-4 px-6 py-4 rounded-[22px] text-[14px] md:text-[15px] font-black transition-all duration-300 group overflow-hidden w-full ${
         active 
-          ? 'bg-wa-primary text-white shadow-[0_20px_40px_rgba(0,128,105,0.25)]' 
-          : 'bg-transparent text-wa-text-secondary hover:bg-white hover:shadow-xl hover:translate-x-1.5'
+          ? 'bg-wa-primary text-white shadow-[0_15px_30px_rgba(0,128,105,0.2)]' 
+          : 'bg-transparent text-wa-text-secondary hover:bg-white hover:shadow-lg hover:translate-x-1.5'
       }`}
     >
       <span className={`transition-transform duration-300 ${active ? 'scale-110' : 'text-wa-primary group-hover:scale-110'}`}>{icon}</span>
@@ -228,7 +228,7 @@ function NavTab({ active, onClick, label, icon }: any) {
       {active && (
         <motion.div 
           layoutId="tab-indicator"
-          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-7 bg-white/40 rounded-full"
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-6 bg-white/40 rounded-full"
         />
       )}
     </button>
