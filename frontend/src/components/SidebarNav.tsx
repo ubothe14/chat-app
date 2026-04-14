@@ -148,21 +148,23 @@ export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole,
                   className="relative w-full h-[52px] flex items-center justify-center group" 
                   title="Profile"
                 >
-                    <div className={`w-[32px] h-[32px] rounded-full overflow-hidden transition-all duration-200 ${activeTab === 'profile' ? 'ring-2 ring-wa-primary p-[2px] opacity-100' : 'opacity-80 group-hover:opacity-100 group-hover:ring-2 group-hover:ring-wa-primary/20 p-[2px]'}`}>
-                        {user?.avatar ? (
-                            <img src={getFullImageUrl(user.avatar) || ''} className="w-full h-full object-cover rounded-full" />
-                        ) : (
-                            <svg viewBox="0 0 212 212" width="32" height="32">
-                                <path fill="#6b7b8d" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z" />
-                                <path fill="#cfd4d6" d="M173.561 171.615a62.767 62.767 0 0 0-22.632-22.851c-9.653-5.901-20.347-9.018-31.342-9.135-11.108.117-21.854 3.241-31.545 9.148a62.81 62.81 0 0 0-22.634 22.853 89.488 89.488 0 0 0 54.164 18.257 89.488 89.488 0 0 0 53.989-18.272z" />
-                                <path fill="#cfd4d6" d="M106.002 125.5c2.645 0 5.212-.253 7.68-.737a38.272 38.272 0 0 0 30.513-38.089C144.028 65.326 126.914 48 106.002 48S67.975 65.326 67.975 86.674a38.272 38.272 0 0 0 30.513 38.089A39.66 39.66 0 0 0 106.002 125.5z" />
-                            </svg>
-                        )}
-                        {userRole !== 'admin' && verificationStatus !== undefined && (verificationStatus === 'verified' || verificationStatus === 'pending' || verificationStatus === 'unverified') && (
-                            <span className="absolute bottom-[8px] right-[14px] w-[12px] h-[12px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[8px] border-[1.5px] border-white transition-standard shadow-sm" style={{
-                                background: (verificationStatus === 'verified' || verificationStatus === 'pending') ? '#16a34a' : '#f59e0b',
+                    <div className="relative">
+                        <div className={`w-[32px] h-[32px] rounded-full overflow-hidden transition-all duration-200 ${activeTab === 'profile' ? 'ring-2 ring-wa-primary p-[2px] opacity-100' : 'opacity-80 group-hover:opacity-100 group-hover:ring-2 group-hover:ring-wa-primary/20 p-[2px]'}`}>
+                            {user?.avatar ? (
+                                <img src={getFullImageUrl(user.avatar) || ''} className="w-full h-full object-cover rounded-full" />
+                            ) : (
+                                <svg viewBox="0 0 212 212" width="32" height="32">
+                                    <path fill="#6b7b8d" d="M106.251.5C164.653.5 212 47.846 212 106.25S164.653 212 106.25 212C47.846 212 .5 164.654.5 106.25S47.846.5 106.251.5z" />
+                                    <path fill="#cfd4d6" d="M173.561 171.615a62.767 62.767 0 0 0-22.632-22.851c-9.653-5.901-20.347-9.018-31.342-9.135-11.108.117-21.854 3.241-31.545 9.148a62.81 62.81 0 0 0-22.634 22.853 89.488 89.488 0 0 0 54.164 18.257 89.488 89.488 0 0 0 53.989-18.272z" />
+                                    <path fill="#cfd4d6" d="M106.002 125.5c2.645 0 5.212-.253 7.68-.737a38.272 38.272 0 0 0 30.513-38.089C144.028 65.326 126.914 48 106.002 48S67.975 65.326 67.975 86.674a38.272 38.272 0 0 0 30.513 38.089A39.66 39.66 0 0 0 106.002 125.5z" />
+                                </svg>
+                            )}
+                        </div>
+                        {userRole !== 'admin' && verificationStatus !== undefined && (
+                            <span className="absolute -bottom-1 -right-1 w-[14px] h-[14px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[9px] border-2 border-white transition-standard shadow-sm z-10" style={{
+                                background: verificationStatus === 'verified' ? '#16a34a' : '#f59e0b',
                             }}>
-                                {(verificationStatus === 'verified' || verificationStatus === 'pending') ? '✓' : '!'}
+                                {verificationStatus === 'verified' ? '✓' : '!'}
                             </span>
                         )}
                     </div>

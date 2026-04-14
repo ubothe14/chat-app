@@ -513,8 +513,13 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                   </button>
                   {selfUser && (
                     <button onClick={() => selfUser._id && startConversation(selfUser._id)} className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
-                      <div className="w-[48px] h-[48px] rounded-full overflow-hidden mr-[16px] bg-wa-bg-input flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-                        {selfUser.avatar ? <img src={getFullImageUrl(selfUser.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                      <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                        <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
+                          {selfUser.avatar ? <img src={getFullImageUrl(selfUser.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                        </div>
+                        <span className={`absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[11px] border-2 border-white transition-standard shadow-sm z-10 ${selfUser.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
+                          {selfUser.verificationStatus === 'verified' ? '✓' : '!'}
+                        </span>
                       </div>
                       <div className="flex-1">
                         <h3 className="text-wa-text-primary font-semibold text-[16px] leading-tight">{selfUser.name} (You)</h3>
@@ -531,8 +536,13 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                   <div className="flex flex-col gap-[4px]">
                     {groupedUsers[char].map(u => (
                       <button key={u._id} onClick={() => u._id && startConversation(u._id)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
-                        <div className="w-[48px] h-[48px] rounded-full overflow-hidden mr-[16px] bg-wa-bg-input flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-                          {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                        <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                          <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
+                             {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                          </div>
+                          <span className={`absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[11px] border-2 border-white transition-standard shadow-sm z-10 ${u.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
+                             {u.verificationStatus === 'verified' ? '✓' : '!'}
+                          </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="text-wa-text-primary font-semibold text-[16px] leading-tight truncate">{u.name}</h3>
@@ -602,10 +612,15 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                       const isSelected = selectedGroupMembers.some(sm => (sm._id || sm.id) === (u._id || u.id))
                       return (
                         <button key={u._id} onClick={() => toggleMemberSelection(u)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
-                          <div className="w-[48px] h-[48px] rounded-full overflow-hidden mr-[16px] bg-wa-bg-input relative flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
-                            {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                          <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
+                              {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                            </div>
+                            <span className={`absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[11px] border-2 border-white transition-standard shadow-sm z-10 ${u.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
+                               {u.verificationStatus === 'verified' ? '✓' : '!'}
+                            </span>
                             {isSelected && (
-                              <div className="absolute inset-0 bg-wa-primary/40 flex items-center justify-center animate-in zoom-in duration-200">
+                              <div className="absolute inset-0 bg-wa-primary/40 rounded-full flex items-center justify-center animate-in zoom-in duration-200 z-20">
                                 <svg viewBox="0 0 24 24" width="24" height="24" className="text-white"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
                               </div>
                             )}
@@ -677,15 +692,15 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
               other?.avatar ? <img src={getFullImageUrl(other.avatar) || ''} className="w-full h-full object-cover" alt="" /> : <PersonAvatar />
             )}
           </div>
-          {!conv.isGroup && other && (other.verificationStatus === 'verified' || other.verificationStatus === 'pending' || other.verificationStatus === 'unverified') && (
+          {!conv.isGroup && other && (
             <div 
               style={{
-                position: 'absolute', bottom: '-2px', right: '0px', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                background: (other.verificationStatus === 'verified' || other.verificationStatus === 'pending') ? '#1fa855' : '#ffbc2c', color: '#fff', 
+                position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                background: other.verificationStatus === 'verified' ? '#1fa855' : '#ffbc2c', color: '#fff', 
                 border: '2px solid #fff', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 1,
               }}
             >
-              {(other.verificationStatus === 'verified' || other.verificationStatus === 'pending') ? (
+              {other.verificationStatus === 'verified' ? (
                 <svg viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
               ) : (
                 <span className="font-black text-[14px] leading-none mb-[1px]">!</span>
@@ -740,15 +755,21 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
               {discoveryUsers.map(u => (
                 <div key={u._id} className="bg-white rounded-2xl shadow-sm border border-wa-separator/20 p-4 transition-all hover:shadow-md group">
                   <div className="flex items-center gap-4 mb-3">
-                    <div className="w-[64px] h-[64px] rounded-full overflow-hidden flex-shrink-0 border-2 border-wa-primary/10">
-                      {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                    <div className="w-[64px] h-[64px] rounded-full flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-wa-primary/10">
+                        {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                      </div>
+                      <span className={`absolute -bottom-1 -right-1 w-[20px] h-[20px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[12px] border-2 border-white transition-standard shadow-sm z-10 ${u.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
+                         {u.verificationStatus === 'verified' ? '✓' : '!'}
+                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="text-wa-text-primary font-bold text-[16px] truncate">{u.name}</h3>
-                        <span className="w-4 h-4 bg-wa-primary text-white rounded-full flex items-center justify-center text-[8px] font-bold ring-2 ring-wa-primary/10">✓</span>
                       </div>
-                      <p className="text-wa-primary text-[12px] font-bold uppercase tracking-wider">Verified User</p>
+                      <p className="text-wa-primary text-[12px] font-bold uppercase tracking-wider">
+                        {u.verificationStatus === 'verified' ? 'Verified User' : 'Pending Verification'}
+                      </p>
                     </div>
                   </div>
                   

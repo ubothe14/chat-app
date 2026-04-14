@@ -104,7 +104,6 @@ router.put('/profile/:userId', verifyToken, async (req, res) => {
 router.get('/discover', verifyToken, async (req, res) => {
   try {
     const users = await User.find({ 
-      verificationStatus: 'verified',
       _id: { $ne: req.userId },
       isActive: true 
     })

@@ -77,8 +77,7 @@ function MessageAvatar({ user }: { user?: User | string }) {
 }
 
 function ChatHeaderAvatar({ isGroup, status, avatar }: { isGroup: boolean; status?: string; avatar?: string }) {
-  const isVerified = status === 'verified' || status === 'pending'
-  const isUnverified = status === 'unverified'
+  const isApproved = status === 'verified'
   
   return (
     <div className="relative w-[40px] h-[40px] flex-shrink-0">
@@ -103,18 +102,18 @@ function ChatHeaderAvatar({ isGroup, status, avatar }: { isGroup: boolean; statu
           </svg>
         )}
       </div>
-      {(isVerified || isUnverified) && (
+      {!isGroup && status && (
         <span style={{
           position: 'absolute',
-          bottom: '-4px',
-          right: '-4px',
+          bottom: '-3px',
+          right: '-3px',
           width: '18px',
           height: '18px',
           borderRadius: '50%',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: isVerified ? '#16a34a' : '#f59e0b',
+          background: isApproved ? '#16a34a' : '#f59e0b',
           color: '#fff',
           fontSize: '11px',
           fontWeight: 700,
@@ -122,7 +121,7 @@ function ChatHeaderAvatar({ isGroup, status, avatar }: { isGroup: boolean; statu
           boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
           zIndex: 1,
         }}>
-          {isVerified ? '✓' : '!'}
+          {isApproved ? '✓' : '!'}
         </span>
       )}
     </div>

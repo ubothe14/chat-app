@@ -411,25 +411,7 @@ function App() {
           />
         )}
         
-        {/* Branching Logic: Verification -> Admin -> Chat */}
-        {(!registeredUser || registeredUser.verificationStatus !== 'verified') ? (
-          /* Validation Gateway */
-          <div className="flex-1 flex flex-col items-center justify-center bg-white/40 backdrop-blur-md p-8 text-center">
-            <div className="w-[120px] h-[120px] bg-wa-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
-              <svg viewBox="0 0 24 24" width="60" height="60" className="text-wa-primary"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15h-1v-1h1v1zm1-3h-2v-5h2v5z"/></svg>
-            </div>
-            <h1 className="text-[28px] font-bold text-wa-text-primary mb-4">Identity Validation Required</h1>
-            <p className="max-w-[420px] text-wa-text-secondary text-[15px] mb-8 leading-relaxed">
-              To browse other users and start chatting, your profile must be manually verified. Please ensure you have uploaded a valid Govt ID in your profile settings.
-            </p>
-            <div className="bg-wa-primary/5 px-6 py-4 rounded-2xl border border-wa-primary/10">
-              <span className="text-wa-primary font-bold uppercase tracking-wider text-[12px]">
-                Current Status: {registeredUser?.verificationStatus?.toUpperCase() || 'UNKNOWN'}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex h-full w-full overflow-hidden">
+        <div className="flex-1 flex h-full w-full overflow-hidden">
              {/* Primary Vertical Navigation (Always Visible on Desktop) */}
              {!isMobile && (
                <SidebarNav 
@@ -505,7 +487,7 @@ function App() {
                            <div className="w-[260px] h-[260px] relative flex items-center justify-center">
                              <div className="absolute inset-0 rounded-full bg-[#c7d2e0] opacity-20" />
                              <svg viewBox="0 0 83 83" width="100" height="100" fill="none">
-                               <path d="M58.942 26.283H24.058A3.058 3.058 0 0 0 21 29.342v26.316A3.058 3.058 0 0 0 24.058 58.7h6.647l3.529 4.854a1 1 0 0 0 1.616 0l3.53 4.854h6.646l3.53 4.854a1 1 0 0 0 1.615 0l3.53-4.854h2.24A3.058 3.058 0 0 0 62 55.658V29.342a3.058 3.058 0 0 0-3.058-3.059z" fill="#364147" />
+                               <path d="M58.942 26.283H24.058A3.058 3.058 0 0 0 21 29.342v26.316A3.058 3.058 0 0 0 24.058 58.7h6.647l3.529 4.854a1 1 0 0 0 1.616 0l3.53-4.854h6.646l3.53 4.854a1 1 0 0 0 1.615 0l3.53-4.854h2.24A3.058 3.058 0 0 0 62 55.658V29.342a3.058 3.058 0 0 0-3.058-3.059z" fill="#364147" />
                              </svg>
                            </div>
                          </div>
@@ -518,7 +500,6 @@ function App() {
                </>
              )}
           </div>
-        )}
       </div>
     </div>
   )
