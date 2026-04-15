@@ -19,6 +19,7 @@ interface ChatWindowProps {
   onStartCall: (data: { conversationId: string, userName: string, userAvatar?: string, participants: string[] }) => void
   activeCall?: any
   setActiveCall?: (call: any) => void
+  onConversationUpdate?: (updatedConv: Conversation) => void
 }
 
 function formatMessageTime(dateStr: string | undefined): string {
@@ -137,7 +138,8 @@ export default function ChatWindow({
   videoClient,
   onStartCall,
   activeCall,
-  setActiveCall
+  setActiveCall,
+  onConversationUpdate
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [messageInput, setMessageInput] = useState('')
@@ -387,8 +389,11 @@ export default function ChatWindow({
       });
       const data = await resp.json();
       if (data.conversation) {
-        // We'll need to update the parent state. For now, we'll force a refresh.
-        window.location.reload(); 
+        if (onConversationUpdate) {
+          onConversationUpdate(data.conversation)
+        } else {
+          window.location.reload(); 
+        }
       }
     } catch (err) {
       console.error('Failed to update status:', err)
