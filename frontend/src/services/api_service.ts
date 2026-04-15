@@ -172,6 +172,11 @@ export const userAPI = {
       method: 'GET',
     }),
 
+  discoverUsers: () =>
+    apiCall<{ users: User[] }>('/users/discover', {
+      method: 'GET',
+    }),
+
   searchUsers: (query: string) =>
     apiCall<{ results: User[] }>(`/users/search/${query}`, {
       method: 'GET',
@@ -289,6 +294,12 @@ export const chatAPI = {
     apiCall<{ conversation: Conversation }>('/chat/group/create', {
       method: 'POST',
       body: JSON.stringify({ participants, groupName, groupIcon }),
+    }),
+
+  updateConversationStatus: (conversationId: string, status: 'accepted' | 'rejected') =>
+    apiCall<{ message: string; conversation: Conversation }>(`/chat/conversation/${conversationId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
 
   editMessage: (messageId: string, text: string) =>

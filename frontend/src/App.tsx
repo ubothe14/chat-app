@@ -340,6 +340,11 @@ function App() {
     setSelectedConversation(conv)
   }
 
+  const handleConversationUpdate = (updatedConv: Conversation) => {
+    setConversations(prev => prev.map(c => c._id === updatedConv._id ? updatedConv : c))
+    setSelectedConversation(updatedConv)
+  }
+
   const handleProfileUpdate = (updates: Partial<APIUser>) => {
     setRegisteredUser(prev => prev ? { ...prev, ...updates } : null)
   }
@@ -466,6 +471,7 @@ function App() {
                              onStartCall={handleStartCall}
                              activeCall={activeCall}
                              setActiveCall={setActiveCall}
+                             onConversationUpdate={handleConversationUpdate}
                            />
                          </StreamVideo>
                        ) : (
@@ -476,6 +482,7 @@ function App() {
                            onBack={() => setShowChatOnMobile(false)}
                            isMobile={isMobile}
                            onStartCall={handleStartCall}
+                           onConversationUpdate={handleConversationUpdate}
                          />
                        )}
                      </div>

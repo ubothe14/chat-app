@@ -177,13 +177,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const fetchDiscoveryUsers = async () => {
     setLoadingDiscovery(true)
     try {
-      // Actually let's use the custom discover route
-      const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/users/discover`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await resp.json();
+      const data = await userAPI.discoverUsers();
       setDiscoveryUsers(data.users || [])
     } catch (err) {
       console.error('Failed to load discovery users:', err)

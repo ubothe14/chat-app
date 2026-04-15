@@ -379,15 +379,7 @@ export default function ChatWindow({
   const handleUpdateStatus = async (newStatus: 'accepted' | 'rejected') => {
     if (!selectedConversation?._id) return
     try {
-      const resp = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/chat/conversation/${selectedConversation._id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      const data = await resp.json();
+      const data = await chatAPI.updateConversationStatus(selectedConversation._id, newStatus);
       if (data.conversation) {
         if (onConversationUpdate) {
           onConversationUpdate(data.conversation)

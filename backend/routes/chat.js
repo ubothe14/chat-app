@@ -114,6 +114,7 @@ router.post('/conversation', verifyToken, async (req, res) => {
     conversation = new Conversation({
       participants: [req.userId, recipientId],
       isGroup: false,
+      createdBy: req.userId,
     })
 
     await conversation.save()
