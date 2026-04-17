@@ -75,6 +75,10 @@ body {
   -webkit-backdrop-filter: blur(28px);
 }
 
+.community-avatar {
+  border-radius: 14px !important;
+}
+
 .chat-pattern-bg {
   background-image: url('/chat_bg.png');
   background-repeat: repeat;

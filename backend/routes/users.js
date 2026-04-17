@@ -1,4 +1,5 @@
 import express from 'express'
+import mongoose from 'mongoose'
 import multer from 'multer'
 import User from '../models/User.js'
 import Visit from '../models/Visit.js'
@@ -100,19 +101,77 @@ router.put('/profile/:userId', verifyToken, async (req, res) => {
   }
 })
 
-// Get verified users for discovery
+// Get verified users for discovery with connection status
 router.get('/discover', verifyToken, async (req, res) => {
   try {
-    const users = await User.find({ 
-      _id: { $ne: req.userId },
-      isActive: true 
-    })
-    .select('name avatar verificationStatus bio')
-    .sort({ lastLogin: -1 })
-    .limit(50)
+    const users = await User.aggregate([
+      { 
+        $match: { 
+          _id: { $ne: new mongoose.Types.ObjectId(req.userId) },
+          isActive: true 
+        } 
+      },
+      {
+        $lookup: {
+          from: 'conversations',
+          let: { otherUserId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$isGroup', false] },
+                    { $in: [new mongoose.Types.ObjectId(req.userId), '$participants'] },
+                    { $in: ['$$otherUserId', '$participants'] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'conversation'
+        }
+      },
+      {
+        $addFields: {
+          connectionStatus: {
+            $let: {
+              vars: {
+                conv: { $arrayElemAt: ['$conversation', 0] }
+              },
+              in: {
+                $cond: {
+                  if: { $not: ['$$conv'] },
+                  then: 'none',
+                  else: {
+                    $cond: {
+                      if: { $eq: ['$$conv.status', 'rejected'] },
+                      then: 'none', // Reset to none if rejected so user can request again
+                      else: '$$conv.status'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          avatar: 1,
+          verificationStatus: 1,
+          bio: 1,
+          connectionStatus: 1,
+          lastLogin: 1
+        }
+      },
+      { $sort: { lastLogin: -1 } },
+      { $limit: 100 }
+    ])
 
     res.json({ users })
   } catch (error) {
+    console.error('Discovery error:', error)
     res.status(500).json({ error: 'Failed to fetch discovery users', message: error.message })
   }
 })

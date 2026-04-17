@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { userAPI, chatAPI, getFullImageUrl, type Conversation, type User } from '../services/api_service'
+import { userAPI, chatAPI, notificationAPI, getFullImageUrl, type Conversation, type User } from '../services/api_service'
+import type { Notification as APINotification } from '../services/api_service'
 import { socketService } from '../services/socket_service'
 import SupportHub from './SupportHub'
+import { Bell, Plus } from 'lucide-react'
 
 interface SidebarProps {
   conversations: Conversation[]
@@ -18,7 +20,7 @@ interface SidebarProps {
 
 function SectionHeader({ title, children, isMobile, user, onAvatarClick }: { title: string; children?: React.ReactNode, isMobile?: boolean, user?: User | null, onAvatarClick?: () => void }) {
   return (
-    <div className={`flex-shrink-0 bg-wa-bg-panel/70 backdrop-blur-xl border-b border-wa-separator z-10 sticky top-0 flex items-center justify-between ${isMobile ? 'h-[50px] px-[12px]' : 'h-[60px] px-[16px]'}`}>
+    <div className={`flex-shrink-0 bg-wa-bg-panel/70 backdrop-blur-xl border-b border-wa-separator z-10 sticky top-0 flex items-center justify-between ${isMobile ? 'h-[50px] px-[12px]' : 'h-[60px] px-[16px]'} w-full overflow-hidden`}>
       <div className="flex items-center gap-3">
         {isMobile && user && (
           <div className="w-[32px] h-[32px] rounded-full overflow-hidden cursor-pointer active:scale-95 transition-transform" onClick={onAvatarClick}>
@@ -90,6 +92,13 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [discoveryUsers, setDiscoveryUsers] = useState<User[]>([])
   const [loadingDiscovery, setLoadingDiscovery] = useState(false)
+  
+  const [notifications, setNotifications] = useState<APINotification[]>([])
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
+  const [isCreatingCommunity, setIsCreatingCommunity] = useState(false)
+  const [groupDescription, setGroupDescription] = useState('')
+  const [discoveredCommunities, setDiscoveredCommunities] = useState<Conversation[]>([])
+  const [loadingCommunities, setLoadingCommunities] = useState(false)
   
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -186,11 +195,49 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
     }
   }
 
+  const fetchDiscoveredCommunities = async () => {
+    setLoadingCommunities(true)
+    try {
+      const res = await chatAPI.discoverCommunities()
+      setDiscoveredCommunities(res.communities || [])
+    } catch (err) {
+      console.error('Failed to discover communities:', err)
+    } finally {
+      setLoadingCommunities(false)
+    }
+  }
+
+  useEffect(() => {
+    // Initial fetch on mount
+    fetchDiscoveryUsers()
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'discover') {
       fetchDiscoveryUsers()
+    } else if (activeTab === 'communities') {
+      fetchDiscoveredCommunities()
+    } else if (activeTab === 'notifications') {
+      const fetchNotifs = async () => {
+        setLoadingNotifications(true)
+        try {
+          const res = await notificationAPI.getNotifications()
+          setNotifications(res.notifications || [])
+        } catch (err) {
+          console.error(err)
+        } finally {
+          setLoadingNotifications(false)
+        }
+      }
+      fetchNotifs()
     }
   }, [activeTab])
+
+  useEffect(() => {
+    if (showNewGroup || showNewChat) {
+      fetchDiscoveryUsers()
+    }
+  }, [showNewGroup, showNewChat])
 
   useEffect(() => {
     if (!showNewChat) return
@@ -211,6 +258,10 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
       setShowNewChat(false)
       setNewChatSearch('')
       onConversationCreated(conv)
+      // Re-fetch discovery users to update the status button to 'pending'
+      if (activeTab === 'discover') {
+        fetchDiscoveryUsers()
+      }
     } catch (err) {
       console.error('Failed to create conversation:', err)
     }
@@ -220,19 +271,20 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
     if (!groupName.trim() || selectedGroupMembers.length === 0) return
     setCreatingGroup(true)
     try {
-      const resp = await chatAPI.createGroup(
-        selectedGroupMembers.map(m => m._id || m.id || ''),
-        groupName.trim()
-      )
+      const resp = isCreatingCommunity 
+        ? await chatAPI.createCommunity(selectedGroupMembers.map(m => m._id || m.id || ''), groupName.trim(), groupDescription.trim())
+        : await chatAPI.createGroup(selectedGroupMembers.map(m => m._id || m.id || ''), groupName.trim())
       setShowNewGroup(false)
       setShowNewChat(false)
       setGroupName('')
+      setGroupDescription('')
       setSelectedGroupMembers([])
       setGroupStep(1)
+      setIsCreatingCommunity(false)
       onConversationCreated(resp.conversation)
     } catch (err) {
-      console.error('Failed to create group:', err)
-      alert('Failed to create group')
+      console.error('Failed to create group or community:', err)
+      alert('Failed to create')
     } finally {
       setCreatingGroup(false)
     }
@@ -312,6 +364,9 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
           user={user} 
           onAvatarClick={() => onTabChange?.('profile')}
         >
+          <button onClick={() => onTabChange?.('notifications')} className={`flex items-center justify-center rounded-full hover:bg-wa-bg-hover transition-all duration-200 text-wa-text-muted ${isMobile ? 'w-[36px] h-[36px]' : 'w-[40px] h-[40px]'}`} title="Notifications">
+            <Bell size={isMobile ? 18 : 20} />
+          </button>
           <button onClick={openNewChat} className={`flex items-center justify-center rounded-full hover:bg-wa-bg-hover transition-all duration-200 ${isMobile ? 'w-[36px] h-[36px]' : 'w-[40px] h-[40px]'}`} title="New chat">
             <svg viewBox="0 0 24 24" width={isMobile ? 20 : 22} height={isMobile ? 20 : 22}><path fill="#54656f" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM13 11h-2v2H9v-2H7V9h2V7h2v2h2v2z" /></svg>
           </button>
@@ -363,7 +418,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
           })}
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-white scrollbar-wa px-[10px] py-[8px] flex flex-col gap-[4px]">
+        <div className="flex-1 overflow-y-auto bg-white scrollbar-wa px-[10px] py-[16px] flex flex-col gap-[6px]">
           {filteredConversations.map(conv => (
             <ConversationItem key={conv._id} conv={conv} />
           ))}
@@ -493,13 +548,13 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
             <div className="pb-4 px-[10px] flex flex-col gap-[4px]">
               {!newChatSearch && (
                 <>
-                  <button onClick={() => { setShowNewGroup(true); setGroupStep(1) }} className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
+                  <button onClick={() => { setShowNewGroup(true); setGroupStep(1); setIsCreatingCommunity(false); }} className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
                     <div className="w-[48px] h-[48px] rounded-full bg-wa-primary flex items-center justify-center mr-[16px] shadow-sm flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
                       <svg viewBox="0 0 24 24" width="24" height="24" className="text-white"><path fill="currentColor" d="M16.67 13.13C18.04 14.06 19 15.32 19 17v3h4v-3c0-2.18-3.57-3.47-6.33-3.87zM15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                     </div>
                     <span className="text-wa-text-primary font-semibold text-[16px]">New group</span>
                   </button>
-                  <button className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
+                  <button onClick={() => { setShowNewGroup(true); setGroupStep(1); setIsCreatingCommunity(true); }} className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
                     <div className="w-[48px] h-[48px] rounded-full bg-wa-primary flex items-center justify-center mr-[16px] shadow-sm flex-shrink-0 transition-transform duration-200 group-hover:scale-105">
                       <svg viewBox="0 0 24 24" width="24" height="24" className="text-white"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-1 2h2c2.76 0 5 2.24 5 5v2H5v-2c0-2.76 2.24-5 5-5z"/></svg>
                     </div>
@@ -507,7 +562,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                   </button>
                   {selfUser && (
                     <button onClick={() => selfUser._id && startConversation(selfUser._id)} className="flex items-center w-full px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 text-left group">
-                      <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                      <div className="w-[48px] h-[48px] rounded-full mr-[35px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
                         <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
                           {selfUser.avatar ? <img src={getFullImageUrl(selfUser.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
                         </div>
@@ -530,7 +585,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                   <div className="flex flex-col gap-[4px]">
                     {groupedUsers[char].map(u => (
                       <button key={u._id} onClick={() => u._id && startConversation(u._id)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
-                        <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                        <div className="w-[48px] h-[48px] rounded-full mr-[35px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
                           <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
                              {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
                           </div>
@@ -555,7 +610,7 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
   }
 
   const renderNewGroupPane = () => {
-    const otherUsers = discoveryUsers.filter((u: User) => (u._id || u.id) !== currentUserId)
+    const otherUsers = discoveryUsers.filter((u: User) => (u._id || u.id) !== currentUserId && u.connectionStatus === 'accepted')
       .sort((a: User, b: User) => (a.name || '').localeCompare(b.name || ''))
 
     const groupedUsers = otherUsers.reduce((acc: Record<string, User[]>, u: User) => {
@@ -598,37 +653,50 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
             </div>
             
             <div className="flex-1 overflow-y-auto scrollbar-wa px-[10px] pt-[4px]">
-              {alphabet.map(char => (
-                <div key={char}>
-                  <div className="h-[40px] flex items-center px-[24px] text-wa-primary font-bold text-[14px] bg-white sticky top-0 z-10">{char}</div>
-                  <div className="flex flex-col gap-[4px]">
-                    {groupedUsers[char].map((u: User) => {
-                      const isSelected = selectedGroupMembers.some(sm => (sm._id || sm.id) === (u._id || u.id))
-                      return (
-                        <button key={u._id} onClick={() => toggleMemberSelection(u)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
-                          <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
-                            <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
-                              {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
-                            </div>
-                            <span className={`absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[11px] border-2 border-white transition-standard shadow-sm z-10 ${u.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
-                               {u.verificationStatus === 'verified' ? '✓' : '!'}
-                            </span>
-                            {isSelected && (
-                              <div className="absolute inset-0 bg-wa-primary/40 rounded-full flex items-center justify-center animate-in zoom-in duration-200 z-20">
-                                <svg viewBox="0 0 24 24" width="24" height="24" className="text-white"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-wa-text-primary font-semibold text-[17px] leading-tight truncate">{u.name}</h3>
-                            <p className="text-wa-text-secondary text-[13px]">Available</p>
-                          </div>
-                        </button>
-                      )
-                    })}
+              {otherUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 px-8 text-center bg-white h-full">
+                  <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <svg viewBox="0 0 24 24" width="32" height="32" className="text-wa-text-secondary"><path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5s-3 1.34-3 3 1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                   </div>
+                  <h3 className="text-wa-text-primary font-bold text-[16px] mb-1">No connections found</h3>
+                  <p className="text-wa-text-secondary text-[13px] leading-relaxed">
+                    You can only add users who have accepted your connection request. 
+                    Visit the <strong>Discover</strong> tab to find and connect with people first!
+                  </p>
                 </div>
-              ))}
+              ) : (
+                alphabet.map(char => (
+                  <div key={char}>
+                    <div className="h-[40px] flex items-center px-[24px] text-wa-primary font-bold text-[14px] bg-white sticky top-0 z-10">{char}</div>
+                    <div className="flex flex-col gap-[4px]">
+                      {groupedUsers[char].map((u: User) => {
+                        const isSelected = selectedGroupMembers.some(sm => (sm._id || sm.id) === (u._id || u.id))
+                        return (
+                          <button key={u._id} onClick={() => toggleMemberSelection(u)} className="flex items-center px-[14px] py-[10px] hover:bg-wa-bg-hover rounded-[12px] transition-all duration-200 w-full text-left group">
+                            <div className="w-[48px] h-[48px] rounded-full mr-[16px] flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
+                              <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input">
+                                {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
+                              </div>
+                              <span className={`absolute -bottom-1 -right-1 w-[18px] h-[18px] rounded-full inline-flex items-center justify-center font-extrabold text-[#fff] text-[11px] border-2 border-white transition-standard shadow-sm z-10 ${u.verificationStatus === 'verified' ? 'bg-[#16a34a]' : 'bg-[#f59e0b]'}`}>
+                                 {u.verificationStatus === 'verified' ? '✓' : '!'}
+                              </span>
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-wa-primary/40 rounded-full flex items-center justify-center animate-in zoom-in duration-200 z-20">
+                                  <svg viewBox="0 0 24 24" width="24" height="24" className="text-white"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-wa-text-primary font-semibold text-[17px] leading-tight truncate">{u.name}</h3>
+                              <p className="text-wa-text-secondary text-[13px]">Available</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             {selectedGroupMembers.length > 0 && (
@@ -678,8 +746,8 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
         onClick={() => onSelectConversation(conv)} 
         className={`flex items-center pl-[16px] pr-[12px] cursor-pointer group relative transition-all duration-200 rounded-[12px] ${isSelected ? 'bg-wa-bg-hover shadow-sm' : 'hover:bg-wa-bg-input'}`}
       >
-        <div className="relative w-[50px] h-[50px] flex-shrink-0 mr-[20px] my-[10px]">
-          <div className="w-full h-full rounded-full overflow-hidden bg-wa-bg-input flex items-center justify-center border border-wa-separator transition-transform duration-200 group-hover:scale-105">
+        <div className={`relative w-[50px] h-[50px] flex-shrink-0 ${isMobile ? 'mr-[12px]' : 'mr-[40px]'} my-[10px]`}>
+          <div className={`w-full h-full ${conv.isCommunity ? 'community-avatar' : 'rounded-full'} overflow-hidden bg-wa-bg-input flex items-center justify-center border border-wa-separator transition-transform duration-200 group-hover:scale-105`}>
             {conv.isGroup ? (
               conv.groupIcon ? <img src={getFullImageUrl(conv.groupIcon) || ''} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full bg-[#dcf8ff] flex items-center justify-center text-[#0f74ff]"><svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg></div>
             ) : (
@@ -742,13 +810,13 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
             </div>
           ) : discoveryUsers.length === 0 ? (
             <div className="text-center py-10 px-4">
-              <p className="text-wa-text-secondary text-[14px]">No verified users found yet. Check back later!</p>
+              <p className="text-wa-text-secondary text-[14px]">No users found yet. Check back later!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {discoveryUsers.map(u => (
                 <div key={u._id} className="bg-white rounded-2xl shadow-sm border border-wa-separator/20 p-4 transition-all hover:shadow-md group">
-                  <div className="flex items-center gap-4 mb-3">
+                  <div className="flex items-center gap-8 mb-3">
                     <div className="w-[64px] h-[64px] rounded-full flex-shrink-0 transition-transform duration-200 group-hover:scale-105 relative">
                       <div className="w-full h-full rounded-full overflow-hidden border-2 border-wa-primary/10">
                         {u.avatar ? <img src={getFullImageUrl(u.avatar) || ''} className="w-full h-full object-cover" /> : <PersonAvatar />}
@@ -775,12 +843,222 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
                     <p className="text-wa-text-muted text-[13px] mb-4">No bio provided.</p>
                   )}
 
-                  <button 
-                    onClick={() => u._id && startConversation(u._id)}
-                    className="w-full h-[38px] bg-wa-primary text-white rounded-xl text-[14px] font-bold transition-all active:scale-95 hover:bg-wa-primary-dark"
+                  {u.connectionStatus === 'accepted' ? (
+                    <button 
+                      onClick={() => {
+                        const existingConv = conversations.find(c => 
+                          !c.isGroup && c.participants.some(p => (p._id || p.id) === (u._id || u.id))
+                        );
+                        if (existingConv) {
+                          onSelectConversation(existingConv);
+                          onTabChange?.('chats');
+                        }
+                      }}
+                      className="w-full h-[38px] bg-[#16a34a] text-white rounded-xl text-[14px] font-bold transition-all active:scale-95 hover:bg-[#15803d] flex items-center justify-center gap-2"
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.484 3.53 1.332 5L2 22l5.091-1.308c1.45.821 3.123 1.308 4.909 1.308 5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.477 0-2.871-.397-4.074-1.077L5.5 19.5l.587-2.348C5.405 16.035 5 14.595 5 13c0-3.866 3.134-7 7-7s7 3.134 7 7-3.134 7-7 7z"/></svg>
+                      Message
+                    </button>
+                  ) : u.connectionStatus === 'pending' ? (
+                    <button 
+                      disabled
+                      className="w-full h-[38px] bg-slate-100 text-slate-500 rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 cursor-default"
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm3.3 14.71L11 12.41V7h2v4.41l3.71 3.71-1.42 1.42z"/></svg>
+                      Request Pending
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => u._id && startConversation(u._id)}
+                      className="w-full h-[38px] bg-wa-primary text-white rounded-xl text-[14px] font-bold transition-all active:scale-95 hover:bg-wa-primary-dark"
+                    >
+                      Send Connection Request
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderGroupsPane = () => {
+    const groups = conversations.filter(c => c.isGroup && !c.isCommunity)
+    return (
+      <div className={`absolute inset-0 z-40 flex flex-col h-full bg-white overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'groups' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+        <div className="h-[60px] bg-wa-primary text-white px-[20px] flex items-center justify-between flex-shrink-0">
+          <h1 className="text-[19px] font-bold">Groups</h1>
+          <button onClick={() => { setShowNewGroup(true); setGroupStep(1); setIsCreatingCommunity(false); }} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="New Group">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto bg-white scrollbar-wa px-[10px] py-[16px] flex flex-col gap-[6px]">
+          {groups.length === 0 ? (
+            <div className="text-center py-10 px-4 text-wa-text-secondary text-[14px]">No groups found. Create one!</div>
+          ) : (
+            groups.map(conv => <ConversationItem key={conv._id} conv={conv} />)
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  const renderCommunitiesPane = () => {
+    const joinedCommunities = conversations.filter(c => c.isGroup && c.isCommunity)
+    
+    return (
+      <div className={`absolute inset-0 z-40 flex flex-col h-full bg-white overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'communities' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+        {/* Header */}
+        <div className="h-[65px] bg-white border-b border-wa-separator px-[20px] flex items-center justify-between flex-shrink-0 z-10">
+          <h1 className="text-[22px] font-bold text-wa-text-primary">Communities</h1>
+          <button 
+            onClick={() => { setShowNewGroup(true); setGroupStep(1); setIsCreatingCommunity(true); }} 
+            className="w-10 h-10 hover:bg-wa-bg-hover rounded-full flex items-center justify-center transition-all active:scale-90 text-wa-primary" 
+            title="New Community"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto scrollbar-wa">
+          <div className="flex flex-col">
+            {/* New Community Top Item */}
+            <button 
+              onClick={() => { setShowNewGroup(true); setGroupStep(1); setIsCreatingCommunity(true); }}
+              className="flex items-center px-[16px] py-[14px] hover:bg-wa-bg-hover transition-all duration-200 group"
+            >
+              <div className="w-[50px] h-[50px] rounded-2xl bg-wa-primary/10 flex items-center justify-center mr-[16px] text-wa-primary shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
+              </div>
+              <span className="text-wa-text-primary font-bold text-[17px]">New community</span>
+            </button>
+
+            <div className="h-[8px] bg-wa-bg-dark border-y border-wa-separator/20" />
+
+            {/* Communities List */}
+            {joinedCommunities.length === 0 ? (
+               <div className="py-20 px-8 text-center bg-white flex flex-col items-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center mb-6 text-wa-primary/40">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                  </div>
+                  <h3 className="text-wa-text-primary font-extrabold text-[18px] mb-2">Build your network</h3>
+                  <p className="text-wa-text-secondary text-[14px] max-w-[240px] leading-relaxed">Communities bring members together in topic-based groups. Create yours today.</p>
+               </div>
+            ) : (
+              joinedCommunities.map((comm, idx) => (
+                <div key={comm._id}>
+                  {/* Community Parent Header */}
+                  <div 
+                    onClick={() => onSelectConversation(comm)}
+                    className="flex items-center px-[16px] py-[12px] cursor-pointer hover:bg-wa-bg-hover transition-all duration-200 group border-t first:border-t-0 border-wa-separator"
                   >
-                    Send Connection Request
+                    <div className="relative w-[50px] h-[50px] flex-shrink-0 mr-[16px]">
+                       <div className="w-full h-full community-avatar overflow-hidden bg-wa-bg-input flex items-center justify-center border border-wa-separator transition-transform duration-200 group-hover:scale-105 shadow-sm">
+                          {comm.groupIcon ? <img src={getFullImageUrl(comm.groupIcon) || ''} className="w-full h-full object-cover" /> : <span className="text-wa-primary font-black text-[20px]">{comm.groupName?.[0]?.toUpperCase()}</span>}
+                       </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <h3 className="text-wa-text-primary text-[17px] font-extrabold truncate">{comm.groupName}</h3>
+                    </div>
+                  </div>
+
+                  {/* Mocked Announcements Sub-group (Hierarchical look) */}
+                  <div 
+                    onClick={() => onSelectConversation(comm)}
+                    className="flex items-center px-[16px] py-[10px] pl-[82px] cursor-pointer hover:bg-wa-bg-hover transition-all duration-200 group relative"
+                  >
+                    {/* Vertical line connector */}
+                    <div className="absolute left-[41px] top-[-12px] bottom-[30px] w-0.5 bg-wa-separator/40" />
+                    
+                    <div className="w-[42px] h-[42px] rounded-full bg-blue-50 flex items-center justify-center mr-[14px] text-blue-600 transition-transform duration-200 group-hover:scale-105 flex-shrink-0">
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" /></svg>
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center border-b border-wa-separator/30 pb-2">
+                       <div className="flex justify-between items-baseline mb-0.5">
+                          <h3 className="text-wa-text-primary text-[15.5px] font-bold truncate">Announcements</h3>
+                          <span className="text-[11px] text-wa-text-muted">Yesterday</span>
+                       </div>
+                       <p className="text-wa-text-secondary text-[13.5px] truncate opacity-70">~ Admin: Welcome to the community!</p>
+                    </div>
+                  </div>
+
+                  {/* View All Action */}
+                  <button className="flex items-center w-full px-[16px] py-[12px] pl-[82px] text-wa-primary font-bold text-[14px] hover:bg-wa-bg-hover transition-colors">
+                     View all
                   </button>
+
+                  {/* Spacer between communities */}
+                  <div className="h-[8px] bg-wa-bg-dark border-y border-wa-separator/20" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const handleConnectionAction = async (conversationId: string, action: 'accepted' | 'rejected') => {
+    try {
+      await chatAPI.updateConversationStatus(conversationId, action)
+      // Refresh notifications immediately to reflect changes
+      const res = await notificationAPI.getNotifications()
+      setNotifications(res.notifications || [])
+      // Refresh discovery users so they show up in group participants list immediately
+      fetchDiscoveryUsers()
+    } catch (err: any) {
+      console.error(err)
+      const errorMsg = err?.error || err?.message || 'Unknown error'
+      alert(`Failed to ${action} request: ${errorMsg}`)
+    }
+  }
+
+  /* handleJoinCommunity is now handled via Community Hub discovery */
+
+  const renderNotificationsPane = () => {
+    return (
+      <div className={`absolute inset-0 z-40 flex flex-col h-full bg-white overflow-hidden transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${activeTab === 'notifications' ? 'translate-x-0' : 'translate-x-[-100%]'}`}>
+        <div className="h-[60px] bg-wa-primary text-white px-[20px] flex flex-col justify-center flex-shrink-0">
+          <h1 className="text-[19px] font-bold">Notifications</h1>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 scrollbar-wa">
+          {loadingNotifications ? (
+            <div className="flex justify-center py-10">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wa-primary"></div>
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-10 px-4">
+              <p className="text-wa-text-secondary text-[14px]">No new notifications.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {notifications.map(n => (
+                <div key={n._id} className="bg-white rounded-xl shadow-sm border border-wa-separator/20 p-4 flex gap-4">
+                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-500 overflow-hidden">
+                     {n.type === 'connection_request' && n.senderId?.avatar ? (
+                        <img src={getFullImageUrl(n.senderId.avatar) || ''} className="w-full h-full object-cover" />
+                     ) : (
+                        <Bell size={20} />
+                     )}
+                   </div>
+                   <div className="flex-1 min-w-0">
+                     <h3 className="font-bold text-[15px] text-wa-text-primary mb-1 truncate">{n.title}</h3>
+                     <p className="text-[14px] text-wa-text-secondary leading-snug">{n.message}</p>
+                     
+                     {n.type === 'connection_request' && n.conversationId && (
+                       <div className="flex gap-3 mt-4">
+                         <button onClick={() => handleConnectionAction(n.conversationId!, 'accepted')} className="flex-1 py-2 bg-[#16a34a] hover:bg-[#15803d] text-white text-[14px] font-bold rounded-xl transition-all shadow-sm active:scale-95">
+                           Accept
+                         </button>
+                         <button onClick={() => handleConnectionAction(n.conversationId!, 'rejected')} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[14px] font-bold rounded-xl transition-all shadow-sm active:scale-95">
+                           Decline
+                         </button>
+                       </div>
+                     )}
+                   </div>
                 </div>
               ))}
             </div>
@@ -805,6 +1083,9 @@ export default function Sidebar({ conversations, selectedConversation, onSelectC
       {renderNewChatPane()}
       {renderNewGroupPane()}
       {renderDiscoverPane()}
+      {renderGroupsPane()}
+      {renderCommunitiesPane()}
+      {renderNotificationsPane()}
       {renderSupportPane()}
     </div>
   )

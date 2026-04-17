@@ -7,9 +7,10 @@ interface SidebarNavProps {
     userRole?: string
     verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected'
     user?: User | null
+    isMobile?: boolean
 }
 
-export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole, verificationStatus, user }: SidebarNavProps) {
+export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole, verificationStatus, user, isMobile }: SidebarNavProps) {
     const topIcons = [
         {
             id: 'chats',
@@ -85,34 +86,32 @@ export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole,
     const bottomActiveIndex = ['settings', 'profile'].indexOf(activeTab)
 
     return (
-        <div className="w-[68px] glass-nav flex flex-col items-center justify-between py-[10px] flex-shrink-0 relative z-20">
-            {/* Top Icons */}
-            <div className="flex flex-col items-center w-full relative">
-                {/* Unified sliding indicator for top tabs */}
+        <div className="w-[68px] h-full glass-nav flex flex-col items-center justify-between py-[20px] flex-shrink-0 relative z-40 bg-white/80 backdrop-blur-xl border-r border-wa-separator/10">
+            {/* Top Icons (Center on mobile) */}
+            <div className="flex flex-col items-center w-full relative gap-1">
+                {/* Unified sliding indicator */}
                 {activeIndex !== -1 && (
                     <span 
-                        className="absolute left-0 w-[3px] h-[26px] bg-wa-primary rounded-r-full transition-all duration-300 ease-out z-10" 
-                        style={{ top: `${activeIndex * 52 + 13}px` }}
+                        className="absolute left-0 w-[3px] h-[26px] bg-wa-primary rounded-full transition-all duration-300 ease-out z-10" 
+                        style={{ top: `${activeIndex * 56 + 13}px` }}
                     />
                 )}
                 {topIcons.map((item) => (
                     <button
                         key={item.id}
                         onClick={() => onTabChange(item.id)}
-                        className="relative w-full h-[52px] flex items-center justify-center group"
+                        className={`relative w-full h-[52px] flex items-center justify-center group ${activeTab === item.id ? 'text-wa-primary' : 'text-wa-text-secondary'}`}
                         title={item.label}
                     >
-                        {/* Hover bg */}
                         <span className={`w-[42px] h-[42px] rounded-full flex items-center justify-center ${activeTab === item.id ? 'bg-[#dbeafe]' : 'group-hover:bg-wa-bg-hover'} transition-all duration-200`}>
                             {item.icon(activeTab === item.id)}
                         </span>
-                        {/* Badge */}
+                        
                         {item.badge && (
                             <span className="absolute top-[6px] right-[9px] min-w-[18px] h-[18px] bg-wa-primary rounded-full flex items-center justify-center text-[11px] font-medium text-white px-[4px] shadow-sm">
                                 {item.badge}
                             </span>
                         )}
-                        {/* Green dot */}
                         {item.hasGreenDot && (
                             <span className="absolute top-[8px] right-[12px] w-[8px] h-[8px] bg-wa-primary rounded-full border border-white" />
                         )}
@@ -120,15 +119,8 @@ export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole,
                 ))}
             </div>
 
-            {/* Bottom Icons — Settings + Profile + Logout */}
-            <div className="flex flex-col items-center w-full relative">
-                {/* Unified sliding indicator for bottom tabs */}
-                {bottomActiveIndex !== -1 && (
-                    <span 
-                        className="absolute left-0 w-[3px] h-[26px] bg-wa-primary rounded-r-full transition-all duration-300 ease-out z-10" 
-                        style={{ top: `${bottomActiveIndex * 52 + 13}px` }}
-                    />
-                )}
+            {/* Bottom/Right Icons (Settings + Profile + Logout) */}
+            <div className="flex flex-col items-center w-full relative gap-1 pt-4 border-t border-wa-separator/10">
                 {/* Settings */}
                 <button
                     onClick={() => onTabChange('settings')}
@@ -185,4 +177,5 @@ export default function SidebarNav({ activeTab, onTabChange, onLogout, userRole,
             </div>
         </div>
     )
+
 }

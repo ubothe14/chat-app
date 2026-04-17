@@ -34,9 +34,17 @@ const conversationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isCommunity: {
+      type: Boolean,
+      default: false,
+    },
     groupName: {
       type: String,
       default: null,
+    },
+    description: {
+      type: String,
+      default: '',
     },
     groupIcon: {
       type: String,

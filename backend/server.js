@@ -12,7 +12,9 @@ import userRoutes from './routes/users.js'
 import chatRoutes from './routes/chat.js'
 import videoRoutes from './routes/video.js'
 import queryRoutes from './routes/queries.js'
+import notificationRoutes from './routes/notifications.js'
 import Visit from './models/Visit.js'
+import jwt from 'jsonwebtoken'
 
 const app = express()
 
@@ -29,7 +31,7 @@ uploadDirs.forEach(dir => {
 app.use(cors({
   origin: true,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
@@ -62,10 +64,13 @@ app.use(async (req, res, next) => {
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
-    origin: true,
+    origin: "*", // Allow all for debugging, or use process.env.FRONTEND_URL list
+    methods: ["GET", "POST"],
     credentials: true,
-  }
+  },
+  allowEIO3: true // Support older clients if needed
 })
+app.set('io', io)
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -99,6 +104,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/video', videoRoutes)
 app.use('/api/queries', queryRoutes)
+app.use('/api/notifications', notificationRoutes)
 
 // Home route
 app.get('/', (req, res) => {
@@ -145,30 +151,61 @@ app.use((err, req, res, next) => {
 // Socket.io Logic
 const onlineUsers = new Map() // userId -> socketId
 
+// Authentication Middleware for Socket.io
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  console.log('🔍 Socket Auth Check - Token present:', !!token);
+
+  if (!token) {
+    console.warn('❌ Socket Auth Failed: No token provided');
+    return next(new Error('Authentication error: No token provided'));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    socket.userId = decoded.id;
+    socket.userEmail = decoded.email;
+    console.log('✅ Socket Auth Success - User:', socket.userId);
+    next();
+  } catch (err) {
+    console.error('❌ Socket Auth Failed:', err.message);
+    next(new Error('Authentication error: Invalid token'));
+  }
+});
+
 io.on('connection', (socket) => {
-  console.log('🔌 New client connected:', socket.id)
+  console.log('🔌 New client connected:', socket.id, 'User:', socket.userId)
 
   socket.on('join', (userId) => {
+    console.log(`📡 [Socket] Join Request - Client userId: ${userId}, Socket userId: ${socket.userId}`);
+    // Verify that the user is joining their own room
+    if (userId !== socket.userId) {
+      console.warn(`⚠️ User ${socket.userId} tried to join room of ${userId}`);
+      return;
+    }
     socket.join(userId)
     onlineUsers.set(userId, socket.id)
     io.emit('user-status', { userId, status: 'online' })
-    console.log(`👤 User ${userId} joined room`)
+    console.log(`👤 User ${userId} joined their personal room`)
   })
 
   socket.on('join-chat', (conversationId) => {
     socket.join(conversationId)
-    console.log(`💬 Joined chat room: ${conversationId}`)
+    console.log(`💬 [Socket] User ${socket.userId} joined chat room: ${conversationId}`)
   })
 
   socket.on('typing', ({ conversationId, userId, userName }) => {
+    console.log(`⌨️ [Socket] Typing: ${userName} in ${conversationId}`);
     socket.to(conversationId).emit('typing', { conversationId, userId, userName })
   })
 
   socket.on('stop-typing', ({ conversationId, userId }) => {
+    console.log(`⏹️ [Socket] Stop Typing: ${userId} in ${conversationId}`);
     socket.to(conversationId).emit('stop-typing', { conversationId, userId })
   })
 
   socket.on('send-message', (message) => {
+    console.log(`✉️ [Socket] New Message emitted to room ${message.conversationId}`);
     // message.conversationId should be available
     io.to(message.conversationId).emit('new-message', message)
   })

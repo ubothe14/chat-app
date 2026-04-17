@@ -26,8 +26,21 @@ export interface User {
   bio?: string
   targetExam?: string
   isActive?: boolean
+  connectionStatus?: 'none' | 'pending' | 'accepted' | 'rejected'
   createdAt?: string
   updatedAt?: string
+}
+
+export interface Notification {
+  _id: string
+  type: 'broadcast' | 'system' | 'personal'
+  title: string
+  message: string
+  senderId?: User | string
+  conversationId?: string
+  isActive: boolean
+  expiresAt?: string | null
+  createdAt: string
 }
 
 export interface Message {
@@ -52,7 +65,9 @@ export interface Conversation {
   lastMessageAt: string | null
   unreadCounts: { userId: string; count: number }[]
   isGroup: boolean
+  isCommunity?: boolean
   groupName: string | null
+  description?: string
   groupIcon: string | null
   status?: 'pending' | 'accepted' | 'rejected'
   createdBy?: string
@@ -296,10 +311,26 @@ export const chatAPI = {
       body: JSON.stringify({ participants, groupName, groupIcon }),
     }),
 
+  createCommunity: (participants: string[], groupName: string, description?: string, groupIcon?: string) =>
+    apiCall<{ conversation: Conversation }>('/chat/community/create', {
+      method: 'POST',
+      body: JSON.stringify({ participants, groupName, description, groupIcon }),
+    }),
+
   updateConversationStatus: (conversationId: string, status: 'accepted' | 'rejected') =>
     apiCall<{ message: string; conversation: Conversation }>(`/chat/conversation/${conversationId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    }),
+
+  discoverCommunities: () =>
+    apiCall<{ communities: Conversation[] }>('/chat/communities/discover', {
+      method: 'GET',
+    }),
+
+  joinCommunity: (conversationId: string) =>
+    apiCall<{ message: string; conversation: Conversation }>(`/chat/conversation/${conversationId}/join`, {
+      method: 'POST',
     }),
 
   editMessage: (messageId: string, text: string) =>
@@ -353,6 +384,18 @@ export const tokenManager = {
   isAuthenticated: () => {
     return !!localStorage.getItem('authToken')
   },
+}
+
+export const notificationAPI = {
+  getNotifications: () =>
+    apiCall<{ notifications: Notification[] }>('/notifications', {
+      method: 'GET',
+    }),
+
+  markAsRead: (notificationId: string) =>
+    apiCall<{ message: string }>(`/notifications/${notificationId}/read`, {
+      method: 'PUT',
+    }),
 }
 
 export const videoAPI = {

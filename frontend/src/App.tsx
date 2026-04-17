@@ -229,9 +229,11 @@ function App() {
       fetchConversations()
       const onMsg = () => fetchConversations()
       socketService.onNewMessage(onMsg)
+      socketService.onConversationUpdated(handleConversationUpdate)
 
       return () => {
         socketService.offNewMessage(onMsg)
+        socketService.offConversationUpdated(handleConversationUpdate)
         // We don't disconnect the overall socket here to avoid flicker on rerenders
         // Socket and Video disconnection is handled in handleLogout
       }
@@ -417,17 +419,16 @@ function App() {
         )}
         
         <div className="flex-1 flex h-full w-full overflow-hidden">
-             {/* Primary Vertical Navigation (Always Visible on Desktop) */}
-             {!isMobile && (
-               <SidebarNav 
-                 activeTab={activeNavTab} 
-                 onTabChange={handleTabChange} 
-                 onLogout={handleLogout} 
-                 userRole={registeredUser?.role} 
-                 verificationStatus={registeredUser?.verificationStatus} 
-                 user={registeredUser} 
-               />
-             )}
+             {/* Primary Navigation (Sidebar on Desktop, Bottom Bar on Mobile) */}
+             <SidebarNav 
+               activeTab={activeNavTab} 
+               onTabChange={handleTabChange} 
+               onLogout={handleLogout} 
+               userRole={registeredUser?.role} 
+               verificationStatus={registeredUser?.verificationStatus} 
+               user={registeredUser} 
+               isMobile={isMobile}
+             />
 
              {activeNavTab === 'admin' ? (
                /* Admin Command Center (Isolated Content) */

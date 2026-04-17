@@ -51,7 +51,7 @@ router.post('/send', verifyToken, async (req, res) => {
 
     // Check if conversation exists and user is participant
     const conversation = await Conversation.findById(conversationId)
-    if (!conversation || !conversation.participants.includes(req.userId)) {
+    if (!conversation || !conversation.participants.some(p => p.toString() === req.userId)) {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
@@ -134,13 +134,24 @@ router.patch('/conversation/:conversationId/status', verifyToken, async (req, re
   try {
     const { conversationId } = req.params
     const { status } = req.body // 'accepted' or 'rejected'
+    console.log(`[Status Update] Hit with ID: ${conversationId}, status: ${status}, user: ${req.userId}`)
 
     if (!['accepted', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' })
     }
 
     const conversation = await Conversation.findById(conversationId)
-    if (!conversation || !conversation.participants.includes(req.userId)) {
+    console.log(`[Status Update] Found conv:`, !!conversation)
+    if (conversation) {
+      console.log(`[Status Update] Participants:`, conversation.participants, typeof conversation.participants[0], 'vs user:', req.userId, typeof req.userId)
+      console.log(`[Status Update] some():`, Object.values(conversation.participants).map(p => p.toString()))
+    }
+    
+    if (!conversation || !conversation.participants.some(p => {
+      // p can be ObjectId, or String, or populated Object
+      const pid = p._id ? p._id.toString() : p.toString()
+      return pid === req.userId
+    })) {
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
@@ -151,6 +162,16 @@ router.patch('/conversation/:conversationId/status', verifyToken, async (req, re
     conversation.status = status
     await conversation.save()
     await conversation.populate('participants', 'name email avatar verificationStatus bio')
+
+    // Emit real-time update to all participants
+    const io = req.app.get('io')
+    if (io) {
+      io.to(conversationId).emit('conversation-updated', conversation)
+      // Also emit to individual rooms to ensure list updates even if not currently in chat room
+      conversation.participants.forEach(p => {
+        io.to(p._id.toString()).emit('conversation-updated', conversation)
+      })
+    }
 
     res.json({
       message: `Connection request ${status}`,
@@ -180,6 +201,7 @@ router.post('/group/create', verifyToken, async (req, res) => {
       groupName,
       groupIcon,
       createdBy: req.userId,
+      status: 'accepted',
     })
 
     await conversation.save()
@@ -191,6 +213,41 @@ router.post('/group/create', verifyToken, async (req, res) => {
     })
   } catch (error) {
     res.status(500).json({ error: 'Failed to create group', message: error.message })
+  }
+})
+
+// Create new community
+router.post('/community/create', verifyToken, async (req, res) => {
+  try {
+    const { participants, groupName, groupIcon, description } = req.body
+
+    if (!groupName) {
+      return res.status(400).json({ error: 'Community name is required' })
+    }
+
+    const members = participants && Array.isArray(participants) ? participants : []
+    const allParticipants = Array.from(new Set([...members, req.userId]))
+
+    const conversation = new Conversation({
+      participants: allParticipants,
+      isGroup: true,
+      isCommunity: true,
+      groupName,
+      description: description || '',
+      groupIcon,
+      createdBy: req.userId,
+      status: 'accepted',
+    })
+
+    await conversation.save()
+    await conversation.populate('participants', 'name email avatar verificationStatus')
+
+    res.status(201).json({
+      message: 'Community created successfully',
+      conversation,
+    })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create community', message: error.message })
   }
 })
 
@@ -330,23 +387,54 @@ router.post('/messages/bulk-delete', verifyToken, async (req, res) => {
   }
 })
 
-// Get chat statistics
-router.get('/stats/:userId', verifyToken, async (req, res) => {
+// Discover public communities
+router.get('/communities/discover', verifyToken, async (req, res) => {
   try {
-    const { userId } = req.params
+    const communities = await Conversation.find({
+      isGroup: true,
+      isCommunity: true,
+      participants: { $ne: req.userId }
+    }).populate('participants', 'name avatar')
+      .sort({ createdAt: -1 })
+      .limit(20)
 
-    const conversations = await Conversation.countDocuments({ participants: userId })
-    const messages = await Message.countDocuments({ senderId: userId })
+    res.json({ communities })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to discover communities', message: error.message })
+  }
+})
 
-    const stats = {
-      userId,
-      totalConversations: conversations,
-      totalMessages: messages,
+// Join a community
+router.post('/conversation/:conversationId/join', verifyToken, async (req, res) => {
+  try {
+    const { conversationId } = req.params
+    const conversation = await Conversation.findById(conversationId)
+    
+    if (!conversation || !conversation.isCommunity) {
+      return res.status(404).json({ error: 'Community not found or invalid' })
     }
 
-    res.json({ stats })
+    if (conversation.participants.some(p => p.toString() === req.userId)) {
+      return res.status(400).json({ error: 'You are already a member of this community' })
+    }
+
+    conversation.participants.push(req.userId)
+    await conversation.save()
+    await conversation.populate('participants', 'name email avatar verificationStatus bio')
+
+    const io = req.app.get('io')
+    if (io) {
+      // Notify current participants about new joiner if needed
+      io.to(conversationId).emit('conversation-updated', conversation)
+      io.to(req.userId).emit('conversation-joined', conversation)
+    }
+
+    res.json({
+      message: 'Joined community successfully',
+      conversation
+    })
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stats', message: error.message })
+    res.status(500).json({ error: 'Failed to join community', message: error.message })
   }
 })
 

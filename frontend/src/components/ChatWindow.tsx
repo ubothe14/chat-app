@@ -829,7 +829,7 @@ export default function ChatWindow({
       <input ref={imageInputRef} type="file" className="hidden" accept="image/*,video/*" onChange={(e) => handleFileUpload(e, 'image')} />
 
       {/* Handshake / Input */}
-      {selectedConversation.status === 'pending' ? (
+      {selectedConversation.status === 'pending' && !selectedConversation.isGroup ? (
         <div className="bg-white border-t border-wa-separator p-6 flex flex-col items-center gap-4 animate-in slide-in-from-bottom duration-300">
           <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-2">
             <svg viewBox="0 0 24 24" width="32" height="32" className="text-wa-primary"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
@@ -865,7 +865,7 @@ export default function ChatWindow({
         </div>
       ) : (
         <div 
-          className="bg-wa-bg-panel/95 backdrop-blur-xl border-t border-wa-separator px-[12px] md:px-[20px] py-[10px] flex items-end gap-[12px] flex-shrink-0 z-30"
+          className="bg-wa-bg-panel/95 backdrop-blur-xl border-t border-wa-separator px-[8px] md:px-[20px] py-[10px] flex items-end gap-[8px] md:gap-[12px] flex-shrink-0 z-30"
           style={{ paddingBottom: isMobile ? '24px' : '15px' }}
         >
           <div className="flex gap-[4px] mb-[6px]" ref={attachRef}>
